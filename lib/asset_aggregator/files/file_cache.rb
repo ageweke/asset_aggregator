@@ -21,7 +21,6 @@ module AssetAggregator
           file_count = 0
           Find.find(root) { |path| file_count += 1; new_mtimes[path] = File.mtime(path) }
           end_time = Time.now
-          $stderr.puts ">>> Find.find(#{root.inspect}): #{file_count} files in #{end_time - start_time} s"
           
           # Deleted files -- if we don't have a new mtime for it, it doesn't exist;
           # we then say it was modified now, the first time we noticed it was gone.

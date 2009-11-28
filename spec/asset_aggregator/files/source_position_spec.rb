@@ -28,6 +28,10 @@ describe AssetAggregator::Files::SourcePosition do
     end
   end
   
+  it "should hash correctly" do
+    raise "baboom"
+  end
+  
   describe "not under Rails.root" do
     before(:each) do
       @file = "/foo/bar/baz/quux"

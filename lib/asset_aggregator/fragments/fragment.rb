@@ -10,6 +10,10 @@ module AssetAggregator
         @source_position = source_position
         @content = content
       end
+      
+      def hash
+        source_position.hash
+      end
     
       def source_file
         source_position.file

@@ -28,7 +28,7 @@ module AssetAggregator
             
             fragment_content = aggregator.filtered_content_from(fragment)
             
-            write_fragment(aggregate, aggregator, fragment, out)
+            write_fragment(aggregate, aggregator, fragment, fragment_content, out)
             index += 1
           end
         end
@@ -57,8 +57,8 @@ module AssetAggregator
         raise "Must override in #{self.class.name}"
       end
       
-      def write_fragment(aggregate, aggregator, fragment, out)
-        fragment.write_to(out)
+      def write_fragment(aggregate, aggregator, fragment, fragment_content, out)
+        out.puts fragment_content
       end
     end
   end

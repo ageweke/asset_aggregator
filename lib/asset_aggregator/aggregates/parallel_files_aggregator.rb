@@ -27,7 +27,7 @@ module AssetAggregator
           source_files = mappings_for(target_file, :target_to_source) if File.exist?(target_file)
           next if source_files.empty?
           
-          fragment_set.remove_all_fragments_for(target_file)
+          remove_all_fragments_for_file(target_file)
           
           if File.exist?(target_file)
             content = File.read(target_file)

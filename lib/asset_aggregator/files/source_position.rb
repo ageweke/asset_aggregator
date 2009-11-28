@@ -34,6 +34,10 @@ module AssetAggregator
         @line = line
         @line = @line.to_i if @line
       end
+      
+      def hash
+        file.hash ^ line.hash
+      end
     
       def <=>(other)
         out = (file <=> other.file)

@@ -8,6 +8,7 @@ module AssetAggregator
         @file_cache = file_cache
         @filters = filters
         @subpath = subpath
+        @filtered_content_cache = { }
       end
       
       def implicit_references_for(source_file)
@@ -15,11 +16,13 @@ module AssetAggregator
       end
       
       def filtered_content_from(fragment)
-        out = fragment.content
-        @filters.each do |filter|
-          out = filter.filter(out)
+        @filtered_content_cache[fragment] ||= begin
+          out = fragment.content
+          @filters.each do |filter|
+            out = filter.filter(out)
+          end
+          out
         end
-        out
       end
       
       def refresh!
@@ -38,6 +41,15 @@ module AssetAggregator
       # is the last time this was run (will be nil the first time).
       def refresh_fragments_since(last_refresh_fragments_since_time)
         raise "Must override in #{self.class.name}"
+      end
+      
+      def remove_all_fragments_for_file(path)
+        remove_fragments_if { |f| f.source_position.file == path }
+      end
+      
+      def remove_fragments_if(&proc)
+        matching_fragments = fragment_set.remove(&proc)
+        matching_fragments.each { |f| @filtered_content_cache.delete(f) }
       end
       
       def target_subpath(source_path, content)

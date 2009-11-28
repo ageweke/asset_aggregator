@@ -13,9 +13,11 @@ module AssetAggregator
         @fragments.delete_if { |f| f.source_position == fragment.source_position }
         @fragments << fragment
       end
-
-      def remove_all_fragments_for(path)
-        @fragments.delete_if { |f| f.source_position.file == path }
+      
+      def remove(&proc)
+        out = @fragments.select(&proc)
+        @fragments.delete_if(&proc)
+        out
       end
     end
   end
