@@ -1,4 +1,6 @@
-describe AssetAggregator::SourcePosition do
+require 'spec/spec_helper'
+
+describe AssetAggregator::Files::SourcePosition do
   describe "with a line" do
     before(:each) do
       @file = File.join(File.dirname(__FILE__), 'sample.txt')
@@ -8,7 +10,7 @@ describe AssetAggregator::SourcePosition do
         @terse_file = @terse_file[(Rails.root.length + 1)..-1]
       end
       
-      @position = AssetAggregator::SourcePosition.new(@file, 77)
+      @position = AssetAggregator::Files::SourcePosition.new(@file, 77)
     end
     
     it "should return the file and line" do
@@ -30,7 +32,7 @@ describe AssetAggregator::SourcePosition do
     before(:each) do
       @file = "/foo/bar/baz/quux"
       @terse_file = @file
-      @position = AssetAggregator::SourcePosition.new(@file, 77)
+      @position = AssetAggregator::Files::SourcePosition.new(@file, 77)
     end
     
     it "should return the file and line" do
@@ -56,7 +58,7 @@ describe AssetAggregator::SourcePosition do
         @terse_file = @terse_file[(Rails.root.length + 1)..-1]
       end
       
-      @position = AssetAggregator::SourcePosition.new(@file, nil)
+      @position = AssetAggregator::Files::SourcePosition.new(@file, nil)
     end
     
     it "should return the file, but no line" do
@@ -78,7 +80,7 @@ describe AssetAggregator::SourcePosition do
       expected_file = __FILE__
       expected_line = __LINE__ + 2
       
-      position = AssetAggregator::SourcePosition.for_here
+      position = AssetAggregator::Files::SourcePosition.for_here
       position.file.should == expected_file
       position.line.should == expected_line
     end
@@ -97,7 +99,7 @@ describe AssetAggregator::SourcePosition do
     
     BAZ_LINE = __LINE__ + 2
     def baz(n)
-      AssetAggregator::SourcePosition.levels_up_stack(n)
+      AssetAggregator::Files::SourcePosition.levels_up_stack(n)
     end
     
     it "should return the requested number of levels up the stack" do
