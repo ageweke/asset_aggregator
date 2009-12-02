@@ -17,8 +17,9 @@ module AssetAggregator
         
         def trim_rails_root(path)
           out = path
-          if (out.length > Rails.root.length + 1) && (out[0..(Rails.root.length - 1)] == Rails.root)
-            out = out[(Rails.root.length)..-1]
+          rails_root = File.canonical_path(Rails.root)
+          if (out.length > rails_root.length + 1) && (out[0..(rails_root.length - 1)] == rails_root)
+            out = out[(rails_root.length)..-1]
             out = $1 if out =~ %r{[/\\]+(.*)$}
           end
           out
@@ -30,7 +31,7 @@ module AssetAggregator
       attr_reader :file, :line
     
       def initialize(file, line)
-        @file = File.expand_path(file).strip
+        @file = File.canonical_path(file).strip
         @line = line
         @line = @line.to_i if @line
       end
