@@ -1,5 +1,4 @@
 require 'spec/spec_helper'
-require File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'file_extensions')
 
 describe AssetAggregator::Files::SourcePosition do
   def make(file, line)
