@@ -13,7 +13,7 @@ module AssetAggregator
             mtime = File.mtime(file)
             if (! last_refresh_fragments_since_time) || mtime > last_refresh_fragments_since_time
               remove_all_fragments_for_file(file)
-              fragment_set.add(AssetAggregator::Fragments::Fragment.new(subpath, AssetAggregator::Files::SourcePosition.new(file, nil), File.read(file)))
+              fragment_set.add(AssetAggregator::Fragments::Fragment.new(AssetAggregator::Files::SourcePosition.new(file, nil), File.read(file)))
             end
           end
         end

@@ -17,5 +17,21 @@ class File
       end
       out
     end
+    
+    def with_temporary_directory
+      require 'tempfile'
+      require 'fileutils'
+
+      tempfile = Tempfile.new(File.basename(__FILE__))
+      tempfile_path = tempfile.path
+      tempfile.close!
+      File.delete(tempfile_path) if File.exist?(tempfile_path)
+      begin
+        FileUtils.mkdir_p(tempfile_path)
+        yield tempfile_path
+      ensure
+        FileUtils.rm_rf(tempfile_path) if File.exist?(tempfile_path)
+      end
+    end
   end
 end

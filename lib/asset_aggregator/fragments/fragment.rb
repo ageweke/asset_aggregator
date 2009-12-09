@@ -3,10 +3,9 @@ module AssetAggregator
     class Fragment
       include Comparable
       
-      attr_reader :target_subpath, :source_position, :content
+      attr_reader :source_position, :content
     
-      def initialize(target_subpath, source_position, content)
-        @target_subpath = target_subpath
+      def initialize(source_position, content)
         @source_position = source_position
         @content = content
       end
