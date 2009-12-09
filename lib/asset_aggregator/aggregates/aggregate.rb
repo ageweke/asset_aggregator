@@ -111,14 +111,14 @@ module AssetAggregator
       
       # Adds an aggregator of the given type. +aggregator_type+ can be a #Symbol
       # or a #String, in which case we use the class
-      # AssetAggregator::Aggregates::#{aggregator_type.to_s.camelize}Aggregator;
+      # AssetAggregator::Aggregators::#{aggregator_type.to_s.camelize}Aggregator;
       # or it can be a #Class, in which case we use it itself.
       #
       # Any extra arguments are passed to the class's constructor, after the
       # #FragmentSet, #FileCache, array of Filters, and subpath.
       def add(aggregator_type, *args)
         klass = if aggregator_type.kind_of?(Symbol) || aggregator_type.kind_of?(String)
-          "AssetAggregator::Aggregates::#{aggregator_type.to_s.camelize}Aggregator".constantize
+          "AssetAggregator::Aggregators::#{aggregator_type.to_s.camelize}Aggregator".constantize
         elsif aggregator_type.kind_of?(Class)
           aggregator_type
         else

@@ -1,5 +1,5 @@
 module AssetAggregator
-  module Aggregates
+  module Aggregators
     # An Aggregator is responsible for finding fragments of content for a 
     # particular subpath. Different Aggregators will have different strategies
     # for doing this; for example, the #StaticFilesAggregator just bundles
@@ -131,10 +131,10 @@ module AssetAggregator
             out = $1 if out =~ /^([^\.]+)\./
             out
           else
-            File.dirname(source_path)
+            File.basename(File.dirname(source_path))
           end
         else
-          File.dirname(source_path)
+          File.basename(File.dirname(source_path))
         end
       end
     end

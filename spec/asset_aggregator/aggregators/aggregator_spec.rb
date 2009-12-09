@@ -1,6 +1,6 @@
 require 'spec/spec_helper'
 
-describe AssetAggregator::Aggregates::Aggregator do
+describe AssetAggregator::Aggregators::Aggregator do
   before :each do
     @fragment_set = mock(:fragment_set)
     @file_cache = mock(:file_cache)
@@ -10,7 +10,7 @@ describe AssetAggregator::Aggregates::Aggregator do
     @filter2 = mock(:filter2)
     @filters = [ @filter1, @filter2 ]
     
-    @aggregator = AssetAggregator::Aggregates::Aggregator.new(@fragment_set, @file_cache, @filters, @subpath)
+    @aggregator = AssetAggregator::Aggregators::Aggregator.new(@fragment_set, @file_cache, @filters, @subpath)
   end
   
   it "should return components correctly" do
@@ -157,7 +157,7 @@ describe AssetAggregator::Aggregates::Aggregator do
     @aggregator.send(:target_subpath, File.join(Rails.root, 'app', 'views', 'two', 'three.html.erb'), "hoohah").should == 'two'
     @aggregator.send(:target_subpath, File.join(Rails.root, 'app', 'models', 'one', 'three.html.erb'), "hoohah").should == 'one'
     @aggregator.send(:target_subpath, File.join(Rails.root, 'app', 'views', 'three.html.erb'), "hoohah").should == 'three'
-    @aggregator.send(:target_subpath, File.join(File.dirname(__FILE__), "hoohah"), "hoohah").should == File.dirname(__FILE__)
+    @aggregator.send(:target_subpath, File.join(File.dirname(__FILE__), "hoohah"), "hoohah").should == File.basename(File.dirname(__FILE__))
   end
   
   it "should return an explicit target subpath correctly" do

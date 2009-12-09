@@ -1,5 +1,5 @@
 module AssetAggregator
-  module Aggregates
+  module Aggregators
     class ParallelFilesAggregator < Aggregator
       def initialize(fragment_set, file_cache, filters, subpath, root, source_to_target_mapping)
         super(fragment_set, file_cache, filters, subpath)

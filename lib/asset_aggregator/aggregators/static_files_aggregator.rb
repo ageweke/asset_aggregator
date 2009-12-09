@@ -1,5 +1,5 @@
 module AssetAggregator
-  module Aggregates
+  module Aggregators
     class StaticFilesAggregator < Aggregator
       def initialize(fragment_set, file_cache, filters, subpath, *files)
         super(fragment_set, file_cache, filters, subpath)
