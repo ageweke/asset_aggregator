@@ -97,6 +97,10 @@ module AssetAggregator
         matching_fragments.each { |f| @filtered_content_cache.delete(f) }
       end
       
+      def tagged_subpath(source_path, content)
+        $1.strip.downcase if content =~ /ASSET[\s_]*TARGET[\s:]*(\S+)/
+      end
+      
       # May be used by subclasses. Given the path of a source file and the
       # content in that file, returns the subpath that this source file would
       # normally aggregate up into. 
