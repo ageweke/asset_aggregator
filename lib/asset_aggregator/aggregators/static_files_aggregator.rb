@@ -5,7 +5,8 @@ module AssetAggregator
         super(fragment_set, file_cache, filters, subpath)
         @files = files
       end
-
+      
+      private
       def refresh_fragments_since(last_refresh_fragments_since_time)
         @files.each do |file|
           if File.exist?(file)
@@ -16,10 +17,6 @@ module AssetAggregator
             end
           end
         end
-      end
-      
-      def implicit_references_for(source_file)
-        [ ]
       end
       
       def to_s
