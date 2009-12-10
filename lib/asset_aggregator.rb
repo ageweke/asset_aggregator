@@ -1,11 +1,17 @@
 module AssetAggregator
+  AssetAggregator.aggregate :javascript do
+    add :asset_packager_compatibility
+    add :files, File.join(Rails.root, 'app', 'views'), '.js'
+    add :widget_inlines, File.join(Rails.root, 'app', 'views')
+  end
+  
   class << self
     def standard_instance
       @standard_instance ||= Impl.new
     end
     
-    def aggregate(type, &definition_proc)
-      standard_instance.set_aggregate_type(type, definition_proc)
+    def aggregate(type, output_handler = nil, &definition_proc)
+      standard_instance.set_aggregate_type(type, output_handler, definition_proc)
     end
     
     def refresh!
@@ -23,14 +29,14 @@ module AssetAggregator
       @file_cache = AssetAggregator::Files::FileCache.new
     end
 
-    def set_aggregate_type(type, definition_proc)
+    def set_aggregate_type(type, output_handler, definition_proc)
+      output_handler ||= "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
       type_class = "AssetAggregator::Types::#{type.to_s.camelize}AggregateType".constantize
-      @aggregate_types[type.to_sym] = type_class.new(type, @file_cache, definition_proc)
+      @aggregate_types[type.to_sym] = type_class.new(type, @file_cache, output_handler, definition_proc)
     end
 
     def content_for(type, subpath)
-      aggregate = aggregate_type(type).aggregate_for(subpath)
-      aggregate.content if aggregate
+      aggregate_type(type).content_for(subpath)
     end
     
     def refresh!
@@ -40,9 +46,7 @@ module AssetAggregator
 
     private
     def aggregate_type(type_name)
-      out = @aggregate_types[type_name.to_sym]
-      raise "There are no aggregations defined for type #{type_name.inspect}" unless out
-      out
+      @aggregate_types[type_name.to_sym] || (raise "There are no aggregations defined for type #{type_name.inspect}")
     end
   end
 end
