@@ -1,12 +1,12 @@
 module AssetAggregator
   module Aggregators
-    # A #StaticFilesAggregator includes a static set of files in a particular
+    # A #FilesAggregator includes a set of files in a particular
     # subpath -- i.e., you give it the full paths of one or more files, or
     # directories, and it includes everything in those files or everything in
     # all the files in those directories. It is typically used to set up a
     # simple mapping -- e.g., 'upload.js' gets everything in
-    # public/javascripts/upload/, or all JavaScript files in .
-    class StaticFilesAggregator < Aggregator
+    # public/javascripts/upload/, or all JavaScript files in app/views/upload/.
+    class FilesAggregator < Aggregator
       def initialize(file_cache, filters, root, inclusion_proc = nil, &subpath_definition_proc)
         super(file_cache, filters)
         
