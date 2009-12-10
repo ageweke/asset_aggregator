@@ -1,6 +1,6 @@
 require 'spec/spec_helper'
 
-describe AssetAggregator::Files::FileCache do
+describe AssetAggregator::Core::FileCache do
   class TestFilesystemImpl
     attr_reader :mtime_calls, :find_calls
     
@@ -45,7 +45,7 @@ describe AssetAggregator::Files::FileCache do
   
   before :each do
     @fsimpl = TestFilesystemImpl.new
-    @cache = AssetAggregator::Files::FileCache.new
+    @cache = AssetAggregator::Core::FileCache.new
     @cache.filesystem_impl = @fsimpl
     
     @fsimpl.set_find_yields([ '/root1/foo', '/root1/bar', '/root1/baz/quux' ])

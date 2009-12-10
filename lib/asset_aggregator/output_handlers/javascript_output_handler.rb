@@ -1,6 +1,6 @@
 module AssetAggregator
   module OutputHandlers
-    class JavascriptOutputHandler < OutputHandler
+    class JavascriptOutputHandler < AssetAggregator::Core::OutputHandler
       def start_all
         out.puts <<-END
 /************************************************************************

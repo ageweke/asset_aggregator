@@ -1,9 +1,13 @@
 module AssetAggregator
+=begin
+  Usage:
+  
   AssetAggregator.aggregate :javascript do
     add :asset_packager_compatibility
     add :files, File.join(Rails.root, 'app', 'views'), '.js'
     add :widget_inlines, File.join(Rails.root, 'app', 'views')
   end
+=end
   
   class << self
     def standard_instance
@@ -26,13 +30,12 @@ module AssetAggregator
   class Impl
     def initialize
       @aggregate_types = { }
-      @file_cache = AssetAggregator::Files::FileCache.new
+      @file_cache = AssetAggregator::Core::FileCache.new
     end
 
     def set_aggregate_type(type, output_handler, definition_proc)
       output_handler ||= "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
-      type_class = "AssetAggregator::Types::#{type.to_s.camelize}AggregateType".constantize
-      @aggregate_types[type.to_sym] = type_class.new(type, @file_cache, output_handler, definition_proc)
+      @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler, definition_proc)
     end
 
     def content_for(type, subpath)

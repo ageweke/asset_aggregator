@@ -1,5 +1,5 @@
 module AssetAggregator
-  module Fragments
+  module Core
     class FragmentSet
       def initialize(filters)
         @fragments = [ ]

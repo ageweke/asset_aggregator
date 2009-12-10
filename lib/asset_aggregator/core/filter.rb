@@ -1,8 +1,8 @@
 module AssetAggregator
-  module Filters
+  module Core
     class Filter
       def filter(input)
-        input
+        raise "Must override in #{self.class.name}"
       end
     end
   end

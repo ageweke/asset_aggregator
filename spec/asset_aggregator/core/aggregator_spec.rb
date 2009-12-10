@@ -1,6 +1,6 @@
 require 'spec/spec_helper'
 
-describe AssetAggregator::Aggregators::Aggregator do
+describe AssetAggregator::Core::Aggregator do
   before :each do
     @fragment_set = mock(:fragment_set)
     @file_cache = mock(:file_cache)
@@ -10,7 +10,7 @@ describe AssetAggregator::Aggregators::Aggregator do
     @filter2 = mock(:filter2)
     @filters = [ @filter1, @filter2 ]
     
-    @aggregator = AssetAggregator::Aggregators::Aggregator.new(@fragment_set, @file_cache, @filters, @subpath)
+    @aggregator = AssetAggregator::Core::Aggregator.new(@fragment_set, @file_cache, @filters, @subpath)
   end
   
   it "should return components correctly" do
@@ -142,9 +142,9 @@ describe AssetAggregator::Aggregators::Aggregator do
       
       actual_proc = @fragment_set.remove_procs[0]
       # Make sure it does the same thing as what we expect
-      fake_fragment_1 = mock(:fragment, :source_position => AssetAggregator::Files::SourcePosition.new('a/b/c', nil))
-      fake_fragment_2 = mock(:fragment, :source_position => AssetAggregator::Files::SourcePosition.new('a/b/d', nil))
-      fake_fragment_3 = mock(:fragment, :source_position => AssetAggregator::Files::SourcePosition.new('a/b/c', nil))
+      fake_fragment_1 = mock(:fragment, :source_position => AssetAggregator::Core::SourcePosition.new('a/b/c', nil))
+      fake_fragment_2 = mock(:fragment, :source_position => AssetAggregator::Core::SourcePosition.new('a/b/d', nil))
+      fake_fragment_3 = mock(:fragment, :source_position => AssetAggregator::Core::SourcePosition.new('a/b/c', nil))
       actual_proc.call(fake_fragment_1).should be_true
       actual_proc.call(fake_fragment_2).should be_false
       actual_proc.call(fake_fragment_3).should be_true

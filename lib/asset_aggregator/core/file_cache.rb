@@ -1,7 +1,7 @@
 require 'find'
 
 module AssetAggregator
-  module Files
+  module Core
     # The FileCache allows the AssetAggregator to efficiently scan large subtrees, looking
     # for files that have changed since some particular time in the past. While there's
     # no magic here -- if you want to look for changed files, you still have to stat(2)

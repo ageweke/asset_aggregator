@@ -1,6 +1,6 @@
 module AssetAggregator
   module Filters
-    class LessCssFilter
+    class LessCssFilter < AssetAggregator::Core::Filter
       def initialize(prefix = "")
         @prefix = prefix
         @prefix += "\n" unless @prefix[-1..-1] == "\n" || @prefix.blank?

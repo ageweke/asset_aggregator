@@ -1,8 +1,8 @@
 require 'spec/spec_helper'
 
-describe AssetAggregator::Files::SourcePosition do
+describe AssetAggregator::Core::SourcePosition do
   def make(file, line)
-    AssetAggregator::Files::SourcePosition.new(file, line)
+    AssetAggregator::Core::SourcePosition.new(file, line)
   end
   
   def this_file
@@ -140,7 +140,7 @@ describe AssetAggregator::Files::SourcePosition do
       expected_file = this_file
       expected_line = __LINE__ + 2
       
-      position = AssetAggregator::Files::SourcePosition.for_here
+      position = AssetAggregator::Core::SourcePosition.for_here
       position.file.should == expected_file
       position.line.should == expected_line
     end
@@ -159,7 +159,7 @@ describe AssetAggregator::Files::SourcePosition do
     
     BAZ_LINE = __LINE__ + 2
     def baz(n)
-      AssetAggregator::Files::SourcePosition.levels_up_stack(n)
+      AssetAggregator::Core::SourcePosition.levels_up_stack(n)
     end
     
     it "should return the requested number of levels up the stack" do

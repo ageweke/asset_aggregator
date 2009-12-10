@@ -1,9 +1,9 @@
 module AssetAggregator
-  module Aggregators
+  module Core
     # An Aggregator is responsible for finding fragments of content for a
     # particular aggregation type (e.g., JavaScript, CSS, whatever).
     # Different Aggregators will have different strategies
-    # for doing this; for example, the #StaticFilesAggregator just bundles
+    # for doing this; for example, the #FilesAggregator just bundles
     # together a particular set of files or directories, while the 
     # #AssetPackagerYmlAggregator looks at an asset_packager-style YML file
     # and pulls data from there. 
@@ -15,12 +15,14 @@ module AssetAggregator
       # should be applied to the raw text of the fragment, the second to the
       # output of the first, and so on, with the output of the last filter
       # being what's actually used).
-      def initialize(file_cache, filters)
+      def initialize(file_cache, filters, aggregate_type)
         @fragment_set = AssetAggregator::Fragments::FragmentSet.new(filters)
         @file_cache = file_cache
         @filtered_content_cache = { }
+        @aggregate_type = aggregate_type
       end
       
+      # Returns the set of all subpaths that this #Aggregator has content for.
       def all_subpaths
         fragment_set.all_subpaths
       end
@@ -34,16 +36,18 @@ module AssetAggregator
       
       # Tells this #Aggregator that it should go back out and recompute the
       # set of #Fragment objects that it uses. For example, the 
-      # #StaticFilesAggregator would go back out and re-scan any directories
+      # #FilesAggregator would go back out and re-scan any directories
       # that were added to it, and the #AssetPackagerYmlAggregator
-      # would go re-read the asset_packages.yml file.
+      # would go re-read the asset_packages.yml file, and any files it refers
+      # to. 
       def refresh!
         new_last_fragments_time = Time.now
         refresh_fragments_since(@last_fragments_time)
         @last_fragments_time = new_last_fragments_time
       end
       
-      # Yields each #Fragment, in turn, in order.
+      # Yields each #Fragment that should be included in the given subpath,
+      # in turn, in order.
       def each_fragment_for(subpath, &proc)
         refresh! unless @last_fragments_time # Make sure we've done it at least once
         fragment_set.each_fragment_for(subpath, &proc)
@@ -57,6 +61,7 @@ module AssetAggregator
         raise "Must override in #{self.class.name}"
       end
       
+      # Given the 
       def tagged_subpath(source_path, content)
         $1.strip.downcase if content =~ /ASSET[\s_]*TARGET[\s:]*(\S+)/
       end

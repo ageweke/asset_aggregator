@@ -1,5 +1,5 @@
 module AssetAggregator
-  module Files
+  module Core
     # A SourcePosition represents the pair of a file (absolute, canonical path) and,
     # optionally, a line number. It's used to capture references to blocks of asset
     # code, to sort by file and line, and to print into comments that tell us in the

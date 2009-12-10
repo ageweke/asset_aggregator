@@ -1,6 +1,6 @@
 module AssetAggregator
   module OutputHandlers
-    class CssOutputHandler < OutputHandler
+    class CssOutputHandler < AssetAggregator::Core::OutputHandler
       def start_all
         out.puts <<-END
 /************************************************************************

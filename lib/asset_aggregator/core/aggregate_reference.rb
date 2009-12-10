@@ -1,5 +1,5 @@
 module AssetAggregator
-  module References
+  module Core
     class AggregateReference
       include Comparable
       

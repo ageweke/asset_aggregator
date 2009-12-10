@@ -1,5 +1,5 @@
 module AssetAggregator
-  module OutputHandler
+  module Core
     class OutputHandler
       def initialize(aggregate_type, subpath)
         @aggregate_type = aggregate_type
