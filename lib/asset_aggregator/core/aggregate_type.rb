@@ -1,5 +1,3 @@
-require 'stringio'
-
 module AssetAggregator
   module Core
     class AggregateType
@@ -17,7 +15,7 @@ module AssetAggregator
       # can read. +definition_proc+ gets run in the context of this object; it is
       # what calls some combination of #add and #filter_with so that the right
       # #Aggregator objects get added to this type.
-      def initialize(type, file_cache, output_handler, definition_proc)
+      def initialize(type, file_cache, output_handler_class, definition_proc)
         @type = type
         @file_cache = file_cache
         @output_handler_class = output_handler_class
@@ -39,7 +37,6 @@ module AssetAggregator
       # that subpath, or +nil+ if there is none. Returns the content as a +String+, all
       # ready for output to the browser.
       def content_for(subpath)
-        out = StringIO.new
         found_content = false
         
         output_handler = @output_handler_class.new(self, subpath)
@@ -62,6 +59,7 @@ module AssetAggregator
           
           output_handler.end_aggregator(aggregator)
         end
+        output_handler.end_all
         
         output_handler.text if found_content
       end
@@ -77,10 +75,10 @@ module AssetAggregator
         filters = Thread.current[:asset_aggregator_filters] || [ ]
         args = [ self, @file_cache, filters ] + args
         
-        aggregator = if aggregator_name.kind_of?(String) || aggregate_name.kind_of?(Symbol)
-          "AssetAggregator::Aggregators::#{aggregator_name.to_s.camelize}Aggregator".constantize.new(args)
+        aggregator = if aggregator_name.kind_of?(String) || aggregator_name.kind_of?(Symbol)
+          "AssetAggregator::Aggregators::#{aggregator_name.to_s.camelize}Aggregator".constantize.new(*args)
         elsif aggregator_name.kind_of?(Class)
-          aggregate_name.new(args)
+          aggregator_name.new(*args)
         else
           raise "Unknown Aggregator type #{aggregator_name.inspect}"
         end

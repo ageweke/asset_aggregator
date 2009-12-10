@@ -6,9 +6,9 @@ module AssetAggregator
     # all the files in those directories. It is typically used to set up a
     # simple mapping -- e.g., 'upload.js' gets everything in
     # public/javascripts/upload/, or all JavaScript files in app/views/upload/.
-    class FilesAggregator < Aggregator
-      def initialize(file_cache, filters, root, inclusion_proc = nil, &subpath_definition_proc)
-        super(file_cache, filters)
+    class FilesAggregator < AssetAggregator::Core::Aggregator
+      def initialize(aggregate_type, file_cache, filters, root, inclusion_proc = nil, &subpath_definition_proc)
+        super(aggregate_type, file_cache, filters)
         
         @root = root
         @inclusion_proc ||= normalize_inclusion_proc(inclusion_proc)

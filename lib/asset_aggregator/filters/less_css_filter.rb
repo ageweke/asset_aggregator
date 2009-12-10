@@ -3,7 +3,7 @@ module AssetAggregator
     class LessCssFilter < AssetAggregator::Core::Filter
       def initialize(prefix = "")
         @prefix = prefix
-        @prefix += "\n" unless @prefix[-1..-1] == "\n" || @prefix.blank?
+        @prefix += "\n" unless @prefix.blank? || @prefix[-1..-1] == "\n"
       end
       
       def filter(input)

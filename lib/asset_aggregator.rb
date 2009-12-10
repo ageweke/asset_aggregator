@@ -34,8 +34,8 @@ module AssetAggregator
     end
 
     def set_aggregate_type(type, output_handler, definition_proc)
-      output_handler ||= "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
-      @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler, definition_proc)
+      output_handler_class ||= "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
+      @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_class, definition_proc)
     end
 
     def content_for(type, subpath)
