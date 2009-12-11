@@ -90,7 +90,7 @@ module AssetAggregator
       # this is the set of subpaths that we generate (e.g.) JavaScript files for.
       def all_subpaths
         out = @aggregators.inject([ ]) { |out, agg| out | agg.all_subpaths }
-        out.uniq
+        out.uniq.sort
       end
       
       # Applies a filter to any #Aggregator objects added during its execution -- this

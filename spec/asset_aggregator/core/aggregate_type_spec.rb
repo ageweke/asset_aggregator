@@ -110,7 +110,7 @@ describe AssetAggregator::Core::AggregateType do
     aggregators = @aggregate_type.instance_variable_get(:@aggregators)
     aggregators[0].should_receive(:all_subpaths).once.and_return(%w{foo bar foo foo})
     aggregators[1].should_receive(:all_subpaths).once.and_return(%w{bar baz baz bonk})
-    @aggregate_type.all_subpaths.sort.should == %w{bar baz bonk foo}
+    @aggregate_type.all_subpaths.should == %w{bar baz bonk foo}
   end
   
   it "should call the output handler class in the right order" do
