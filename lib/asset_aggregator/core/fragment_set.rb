@@ -17,6 +17,13 @@ module AssetAggregator
         @fragments = [ ]
         @filters = filters
         @filtered_fragments = { }
+        @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
+      end
+
+      # FOR TESTING ONLY. Sets the FilesystemImpl-compatible object that this class
+      # will use to talk to the filesystem.
+      def filesystem_impl=(impl)
+        @filesystem_impl = impl
       end
       
       # Adds the given #Fragment. Replaces any other that shares the same #SourcePosition.
@@ -41,7 +48,7 @@ module AssetAggregator
       # Removes all #Fragment objects whose #SourcePosition indicates that they came from
       # the given file.
       def remove_all_for_file(file)
-        file = File.canonical_path(file)
+        file = @filesystem_impl.canonical_path(file)
         remove { |f| f.source_position.file == file }
       end
       

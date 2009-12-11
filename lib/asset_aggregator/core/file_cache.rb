@@ -38,27 +38,11 @@ module AssetAggregator
     # called once per HTTP request into Rails in the development environment, and once,
     # ever, in the production environment.
     class FileCache
-      # This class models the few operations we need against the filesystem. It's broken
-      # out like this only so that our spec can easily mock out the filesystem.
-      class FilesystemImpl
-        def mtime(path)
-          File.mtime(path)
-        end
-        
-        def find(root, &proc)
-          Find.find(root, &proc)
-        end
-        
-        def expand_path(path)
-          File.expand_path(path)
-        end
-      end
-
       # Creates a new instance. In general, you should only ever need one of these;
       # making more than one will only make things less efficient.
       def initialize
         @roots = { }
-        @filesystem_impl = FilesystemImpl.new
+        @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
       end
       
       # FOR TESTING ONLY. Sets the FilesystemImpl-compatible object that this class

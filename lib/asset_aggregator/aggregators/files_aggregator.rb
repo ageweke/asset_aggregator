@@ -51,6 +51,13 @@ module AssetAggregator
         @root = root
         @inclusion_proc = normalize_inclusion_proc(inclusion_proc)
         @subpath_definition_proc ||= method(:default_subpath_definition)
+        @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
+      end
+
+      # FOR TESTING ONLY. Sets the FilesystemImpl-compatible object that this class
+      # will use to talk to the filesystem.
+      def filesystem_impl=(impl)
+        @filesystem_impl = impl
       end
       
       # A nice human-readable description.
@@ -64,9 +71,9 @@ module AssetAggregator
       # from each file that has changed.
       def refresh_fragments_since(last_refresh_fragments_since_time)
         @file_cache.changed_files_since(@root, last_refresh_fragments_since_time) do |changed_file|
-          next if File.basename(changed_file) =~ /^\./ || File.directory?(changed_file) || (! @inclusion_proc.call(changed_file))
+          next if File.basename(changed_file) =~ /^\./ || @filesystem_impl.directory?(changed_file) || (! @inclusion_proc.call(changed_file))
           
-          content = File.read(changed_file)
+          content = @filesystem_impl.read(changed_file)
           target_subpath = tagged_subpath(changed_file, content) || @subpath_definition_proc.call(changed_file, content)
           
           fragment_set.remove_all_for_file(changed_file)
@@ -99,8 +106,8 @@ module AssetAggregator
       # this is the default definition of the block that gets passed to the
       # constructor.
       def default_subpath_definition(file, content)
-        file = File.canonical_path(file)
-        rails_root_canonical = File.canonical_path(Rails.root)
+        file = @filesystem_impl.canonical_path(file)
+        rails_root_canonical = @filesystem_impl.canonical_path(Rails.root)
         
         out = File.basename(file)
         out = $1 if out =~ /^([^\.]+)\./

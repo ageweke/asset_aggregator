@@ -61,6 +61,8 @@ module AssetAggregator
       end
       
       private
+      attr_reader :fragment_set
+      
       # Must make sure +fragment_set+ contains all up-to-date fragments;
       # +last_refresh_fragments_since_time+ is the last time this was run (will be
       # nil the first time).
