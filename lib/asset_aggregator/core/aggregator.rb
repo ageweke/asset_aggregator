@@ -75,7 +75,8 @@ module AssetAggregator
       end
       
       # Given the content of a fragment, tells whether it is 'tagged' with
-      # an explicit subpath. This is a means of 
+      # an explicit subpath. This is a means of overriding, on a file-by-file
+      # basis, the subpath to which a fragment of content maps.
       def tagged_subpath(source_path, content)
         $1.strip.downcase if content =~ /ASSET[\s_]*TARGET[\s:]*(\S+)/
       end
