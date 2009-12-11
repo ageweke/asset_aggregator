@@ -10,16 +10,16 @@ def sub(dir, *subpath)
   File.canonical_path(File.join(dir, *subpath))
 end
 
-describe AssetAggregator::Aggregators::StaticFilesAggregator do
+describe AssetAggregator::Aggregators::FilesAggregator do
   before :each do
-    @fragment_set = AssetAggregator::Fragments::FragmentSet.new
-    @file_cache = AssetAggregator::Files::FileCache.new
+    @fragment_set = AssetAggregator::Core::FragmentSet.new
+    @file_cache = AssetAggregator::Core::FileCache.new
     @filters = [ ]
     @subpath = 'foo/bar'
   end
   
   def create(include_proc, *files)
-    AssetAggregator::Aggregators::StaticFilesAggregator.new(@fragment_set, @file_cache, @filters, @subpath, include_proc, *files)
+    AssetAggregator::Aggregators::FilesAggregator.new(@fragment_set, @file_cache, @filters, @subpath, include_proc, *files)
   end
   
   def check_fragments(aggregator, *specs)

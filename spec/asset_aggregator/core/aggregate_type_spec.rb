@@ -145,6 +145,8 @@ describe AssetAggregator::Core::AggregateType do
     output_handler.should_receive(:end_fragment).with(aggregator1, fragment2).ordered
     output_handler.should_receive(:end_aggregator).with(aggregator1).ordered
 
+    output_handler.should_receive(:separate_aggregators).with(aggregator1, aggregator2).ordered
+
     output_handler.should_receive(:start_aggregator).with(aggregator2).ordered
     output_handler.should_receive(:start_fragment).with(aggregator2, fragment3).ordered
     output_handler.should_receive(:fragment_content).with(aggregator2, fragment3, "baz").ordered
