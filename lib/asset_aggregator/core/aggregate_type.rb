@@ -43,7 +43,7 @@ module AssetAggregator
         
         output_handler.start_all
         @aggregators.each_with_index do |aggregator, index|
-          output_handler.separate_aggregators(aggregator, @aggregators[index - 1]) if index > 0
+          output_handler.separate_aggregators(@aggregators[index - 1], aggregator) if index > 0
           output_handler.start_aggregator(aggregator)
           
           last_fragment = nil
