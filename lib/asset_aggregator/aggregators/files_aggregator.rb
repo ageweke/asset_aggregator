@@ -73,11 +73,13 @@ module AssetAggregator
         @file_cache.changed_files_since(@root, last_refresh_fragments_since_time) do |changed_file|
           next if File.basename(changed_file) =~ /^\./ || @filesystem_impl.directory?(changed_file) || (! @inclusion_proc.call(changed_file))
           
-          content = @filesystem_impl.read(changed_file)
-          target_subpath = tagged_subpath(changed_file, content) || @subpath_definition_proc.call(changed_file, content)
-          
           fragment_set.remove_all_for_file(changed_file)
-          fragment_set.add(AssetAggregator::Fragments::Fragment.new(target_subpath, AssetAggregator::Files::SourcePosition.new(changed_file, nil), content))
+          if @filesystem_impl.exist?(changed_file)
+            content = @filesystem_impl.read(changed_file)
+            target_subpath = tagged_subpath(changed_file, content) || @subpath_definition_proc.call(changed_file, content)
+          
+            fragment_set.add(AssetAggregator::Core::Fragment.new(target_subpath, AssetAggregator::Core::SourcePosition.new(changed_file, nil), content))
+          end
         end
       end
       
