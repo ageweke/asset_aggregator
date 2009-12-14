@@ -1,3 +1,116 @@
+# = #AssetAggregator
+#
+# #AssetAggregator was written to help solve software-engineering issues that
+# cropped up in a large (> 1500 view templates/partials) Rails application
+# at scribd.com. To wit:
+#
+# There's a natural tension in Javascript, CSS, and other assets that a modern
+# Web application requires. JS/CSS typically "belongs" to a piece of HTML that's
+# encapsulated in a view or partial; in a perfect world, it would therefore
+# "live" with that view or partial -- inside the same file, or in a small file
+# alongside it and encapsulated.
+#
+# The tension comes because, at runtime, you can't reasonably deliver your
+# JS or CSS as hundreds and hundreds of tiny little files -- browsers will get
+# very unhappy, or slow, at this. Browsers and runtime therefore wants your
+# assets to be in a small number of large files -- the exact opposite of what
+# software-engineering practices would deem best.
+#
+# There are currently (at least) three solutions to this:
+#
+#   * Store your JS/CSS on disk as a few big files (typically under public/);
+#     tell your developers to carefully maintain them, including comments about
+#     what view source file the CSS/JS goes with, and to remember to delete
+#     dead code. Sounds great; in our experience, doesn't actually work very
+#     well, as developers (yours truly especially) are lazy.
+#
+#   * Use the asset_packager[http://synthesis.sbecker.net/pages/asset_packager]
+#     to package up your multiple source files into larger, aggregated files
+#     for delivery. This is a huge, huge improvement, and a very nice piece of
+#     software. In our experience, though, there was a caveat: =asset_packages.yml=
+#     is manually maintained. You're therefore at the mercy of every developer
+#     to /pick/ an appropriate source file to put his or her JS/CSS into, to
+#     add it to =asset_packages.yml=, and to remember to remove it when done.
+#     Also, at the kind of granularity we really wanted (e.g., one CSS source
+#     file per view that needs CSS), =asset_packages.yml= gets very big.
+#     Really, we wanted something rule-based, that allowed a complete decoupling
+#     of the two primary responsibilities -- "I made a new view/partial and
+#     need to put the CSS/JS some place" vs. "I need to control how all these
+#     JS/CSS source files roll up into assets delivered at runtime".
+#
+#   * This package, the #AssetAggregator. It lets you define how small chunks
+#     of assets 'roll up' (aggregate) into the aggregate JS/CSS files that get
+#     delivered at runtime, programmatically. It also adds features that let
+#     you override this code on a case-by-case basis, filter content (e.g.,
+#     jsmin for JS, ERb, Less[http://lesscss.org/] for CSS, etc.) before delivery,
+#     include either the original fragments directly (useful for development)
+#     or the aggregated assets, and automatically handle dependencies -- you
+#     don't need to think about your include tags in the <head>;
+#     #AssetAggregator will determine what needs to be included based on the
+#     views and partials you render, and output the right tags, fully
+#     commented with exactly why they're required.
+#
+# = Using the Asset Aggregator
+#
+# Add something like the following to =config/environment.rb=:
+#
+#   AssetAggregator.aggregate :javascript do
+#     add :asset_packager_compatibility
+#     add :files, File.join(Rails.root, 'app', 'views'), 'js'
+#   end
+#
+# Let's break that down:
+#
+#   * =:javascript= is the /type/ to aggregate. Different types aggregate
+#     completely separately, meaning you can use totally different rules for
+#     CSS than for Javascript. The type can actually be any arbitrary symbol,
+#     although if you use something other than the predefined =:javascript=
+#     or =:css= you'll have to pass an object compatible with
+#     #AssetAggregator::Core::OutputHandler as the second argument to #aggregate
+#     so that we know how to, textually speaking, "glue" together a bunch
+#     of code fragments to make a delivered, aggregated asset.
+#
+#   * =add= adds a new /aggregator/ (a subclass of #AssetAggregator::Core::Aggreagtor)
+#     to this type. An aggregator is an object that understands how to
+#     "scoop up" fragments of content according to some particular set of rules.
+#     In this case, we have two aggregators:
+#
+#         * =:asset_packager_compatibility= (which gets turned into the class
+#           #AssetAggregator::Aggregators::AssetPackagerCompatibilityAggregator
+#           via Rails-style naming rules; you can pass an actual #Class object
+#           if defining your own), which takes no arguments and knows how to
+#           emulate what the asset_packager[://synthesis.sbecker.net/pages/asset_packager]
+#           does;
+#
+#         * =:files= (which similarly becomes #AssetAggregator::Aggregators::FileAggregator),
+#           which takes two arguments, a directory and an extension (or #Array
+#           of extensions); it "scoops up" all the files under the given
+#           directory with the given extension(s), and makes them available under
+#           a subpath that depends on the path to the file. (Basically, it
+#           uses the top-level subdirectory under =#{Rails.root}/app/*= if the
+#           file's under there, so =#{Rails.root}/app/views/foo/bar/baz.js
+#           shows up in a file called =foo.js=; otherwise, it uses the
+#           name of the file without any extensions, so =/foo/bar/baz.bar.js=
+#           shows up in a file called =baz.js=.) You can control the mapping to
+#           subpaths and which files get included very easily; see the
+#           documentation for #AssetAggregator::Aggregators::FileAggregator
+#           for details.
+#
+# OK, so now you have aggregation mappings set up. But you need to define a
+# way to actually deliver the given assets. The easiest way to do this is to
+# create a new controller to do so:
+#
+#    app/controllers/aggregated_controller.rb
+#    class AggregatedController < ApplicationController
+#      include AssetAggregator::Rails::AggregatedController
+#    end
+#
+#    config/routes.rb
+#      ...
+#      map.aggregate aggregated/
+#
+# #AssetAggregator::Rails::AggregatedController will automatically add methods
+# to this controller that are named after any types you've aggregated
 module AssetAggregator
 =begin
   Usage:
