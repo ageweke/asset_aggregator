@@ -1,8 +1,10 @@
 module AssetAggregator
   module OutputHandlers
+    # An #AssetAggregator::Core::OutputHandler that writes output in a verbose,
+    # documented form that's compatible with Javascript.
     class JavascriptOutputHandler < AssetAggregator::Core::OutputHandler
       def start_all
-        out.puts <<-END
+        output <<-END
 /************************************************************************
  * '#{subpath}.js'
  *
@@ -13,7 +15,7 @@ END
       end
 
       def start_aggregator(aggregator)
-        out.puts <<-END
+        output <<-END
 
 
 /************************************************************************
@@ -24,7 +26,7 @@ END
       end
       
       def start_fragment(aggregator, fragment)
-        out.puts <<-END
+        output <<-END
 /* ----------------------------------------------------------------------
    - #{fragment.source_position}
    ---------------------------------------------------------------------- */

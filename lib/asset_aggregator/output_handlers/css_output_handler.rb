@@ -1,5 +1,7 @@
 module AssetAggregator
   module OutputHandlers
+    # An #AssetAggregator::Core::OutputHandler that writes output in a verbose,
+    # documented form that's compatible with CSS.
     class CssOutputHandler < AssetAggregator::Core::OutputHandler
       def start_all
         out.puts <<-END
