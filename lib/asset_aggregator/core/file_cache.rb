@@ -81,7 +81,7 @@ module AssetAggregator
       # will NOT be picked up by this method. This is part of the whole point, as
       # it makes it much more efficient.
       def changed_files_since(root, time)
-        root = @filesystem_impl.expand_path(root)
+        root = File.expand_path(root)
         data = @roots[root]
     
         unless data && data[:up_to_date]

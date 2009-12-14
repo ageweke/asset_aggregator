@@ -17,14 +17,9 @@ module AssetAggregator
         Find.find(root, &proc)
       end
       
-      # Behaves the same as File.expand_path(path).
-      def expand_path(path)
-        File.expand_path(path)
-      end
-      
-      # Behaves the same as our File.canonical_file(path).
-      def canonical_file(path)
-        File.canonical_file(path)
+      # Behaves the same as our File.canonical_path(path).
+      def canonical_path(path)
+        File.canonical_path(path)
       end
       
       # Behaves the same as File.directory?(path).
