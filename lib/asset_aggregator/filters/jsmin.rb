@@ -221,6 +221,12 @@ module AssetAggregator
         jsmin
         @stdout.string
       end
+      
+      class << self
+        def convert(input_data)
+          new.convert(input_data)
+        end
+      end
     end
   end
 end
