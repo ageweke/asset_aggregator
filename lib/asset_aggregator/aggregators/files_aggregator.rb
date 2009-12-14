@@ -50,7 +50,7 @@ module AssetAggregator
         
         @root = root
         @inclusion_proc = normalize_inclusion_proc(inclusion_proc)
-        @subpath_definition_proc ||= method(:default_subpath_definition)
+        @subpath_definition_proc = subpath_definition_proc || method(:default_subpath_definition)
         @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
       end
 

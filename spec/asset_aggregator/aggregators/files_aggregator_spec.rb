@@ -9,7 +9,6 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     @filesystem_impl = AssetAggregator::TestFilesystemImpl.new
     
     @root = File.join(Rails.root, 'app', 'views')
-    @files_aggregator = make(@root)
   end
   
   def make(root, include_proc = nil, &subpath_definition_proc)
@@ -80,9 +79,9 @@ describe AssetAggregator::Aggregators::FilesAggregator do
   
   context "with three standard files" do
     before :each do
-      @path1 = File.join(@root, 'foo', 'bar.css')
-      @path2 = File.join(@root, 'foo', 'baz.css')
-      @path3 = File.join(@root, 'quux', 'marph.css')
+      @path1 = File.join(@root, 'foo', 'bar.one')
+      @path2 = File.join(@root, 'foo', 'baz.two')
+      @path3 = File.join(@root, 'quux', 'marph.three')
       @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_yield(@path1).and_yield(@path2).and_yield(@path3)
       @filesystem_impl.set_content(@path1, 'path1 content')
       @filesystem_impl.set_content(@path2, 'path2 content')
@@ -154,13 +153,110 @@ describe AssetAggregator::Aggregators::FilesAggregator do
         { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     end
+    
+    it "should obey the inclusion proc" do
+      @aggregator = make(@root, Proc.new { |f| File.basename(f) =~ /bar/ || File.basename(f) =~ /marph/ })
+      check_fragments(@aggregator, 'foo', [
+        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+      ])
+      check_fragments(@aggregator, 'quux', [
+        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+      ])
+    end
+
+    it "should allow a single extension as the inclusion proc" do
+      @aggregator = make(@root, 'one')
+      check_fragments(@aggregator, 'foo', [
+        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+      ])
+      check_fragments(@aggregator, 'quux', [ ])
+    end
+    
+    it "should allow several extensions as the inclusion proc" do
+      @aggregator = make(@root, [ 'one', 'three' ])
+      check_fragments(@aggregator, 'foo', [
+        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+      ])
+      check_fragments(@aggregator, 'quux', [
+        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+      ])
+    end
+    
+    it "should allow dots in the extensions, and be case-insensitive" do
+      @aggregator = make(@root, [ '.one', '.ThRee' ])
+      check_fragments(@aggregator, 'foo', [
+        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+      ])
+      check_fragments(@aggregator, 'quux', [
+        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+      ])
+    end
+
+    it "should obey tagged subpaths" do
+      new_content = "path2 content\n\nASSET TARGET: quux\nwhatever yo"
+      @filesystem_impl.set_content(@path2, new_content)
+      check_fragments(@aggregator, 'foo', [
+        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' },
+      ])
+      check_fragments(@aggregator, 'quux', [
+        { :target_subpath => 'quux', :file => @path2, :line => nil, :content => new_content },
+        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+      ])
+    end
+    
+    context "with a complex subpath definition proc" do
+      before :each do
+        @aggregator = make(@root, nil) do |file, content|
+          out = case File.basename(file)
+          when /bar/ then 'one'
+          when /baz/ then 'two'
+          when /marph/ then 'one'
+          else 'nonsense'
+          end
+          out = 'three' if content =~ /path3\s+content/
+          out
+        end
+      end
+      
+      it "should obey the subpath definition proc, and pass filename and file content" do
+        check_fragments(@aggregator, 'one', [
+          { :target_subpath => 'one', :file => @path1, :line => nil, :content => 'path1 content' },
+        ])
+        check_fragments(@aggregator, 'two', [
+          { :target_subpath => 'two', :file => @path2, :line => nil, :content => 'path2 content' }
+        ])
+        check_fragments(@aggregator, 'three', [
+          { :target_subpath => 'three', :file => @path3, :line => nil, :content => 'path3 content' },
+        ])
+      end
+    
+      it "should have tags override the subpath definition proc" do
+        new_content = "path2 content\nASSET TARGET: one"
+        @filesystem_impl.set_content(@path2, new_content)
+        check_fragments(@aggregator, 'one', [
+          { :target_subpath => 'one', :file => @path1, :line => nil, :content => 'path1 content' },
+          { :target_subpath => 'one', :file => @path2, :line => nil, :content => new_content }
+        ])
+        check_fragments(@aggregator, 'two', [ ])
+        check_fragments(@aggregator, 'three', [
+          { :target_subpath => 'three', :file => @path3, :line => nil, :content => 'path3 content' },
+        ])
+      end
+    end
   end
   
-  it "should obey the inclusion proc"
-  it "should allow a single extension as the inclusion proc"
-  it "should allow several extensions as the inclusion proc"
-  
-  it "should obey tagged subpaths"
-  it "should obey the subpath definition proc"
-  it "should use the file's name when outside Rails.root/app"
+  it "should use the file's name when outside Rails.root/app" do
+    @root = File.join(File.dirname(Rails.root), 'somewhere', 'else')
+    path = File.join(@root, 'foo', 'bar.css')
+    
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_yield(path)
+    @filesystem_impl.set_content(path, 'hidey ho')
+    
+    aggregator = make(@root)
+    check_fragments(aggregator, 'bar', [
+      { :target_subpath => 'bar', :file => path, :line => nil, :content => 'hidey ho' }
+    ])
+    
+    check_fragments(aggregator, 'foo', [ ])
+  end
 end
