@@ -4,7 +4,7 @@ module AssetAggregator
     # documented form that's compatible with CSS.
     class CssOutputHandler < AssetAggregator::Core::OutputHandler
       def start_all
-        out.puts <<-END
+        output <<-END
 /************************************************************************
  * '#{subpath}.css'
  *
@@ -15,7 +15,7 @@ END
       end
 
       def start_aggregator(aggregator)
-        out.puts <<-END
+        output <<-END
 
 
 /************************************************************************
@@ -26,7 +26,7 @@ END
       end
       
       def start_fragment(aggregator, fragment)
-        out.puts <<-END
+        output <<-END
 /* ----------------------------------------------------------------------
    - #{fragment.source_position}
    ---------------------------------------------------------------------- */
