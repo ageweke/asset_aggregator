@@ -39,6 +39,17 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.refresh_fragments_since_calls.should == [ nil ]
   end
   
+  it "should return the right #aggregated_subpath_for, and make sure it's refreshed first (but only once)" do
+    source_position = mock(:source_position)
+    @test_fragment_set.should_receive(:aggregated_subpath_for).once.with(source_position).and_return("a/b/c/d/e")
+    @aggregator.aggregated_subpath_for(source_position).should == "a/b/c/d/e"
+    @aggregator.refresh_fragments_since_calls.should == [ nil ]
+
+    @test_fragment_set.should_receive(:aggregated_subpath_for).once.with(source_position).and_return("a/b/c/d/e")
+    @aggregator.aggregated_subpath_for(source_position).should == "a/b/c/d/e"
+    @aggregator.refresh_fragments_since_calls.should == [ nil ]
+  end
+  
   it "should return the filtered content from a fragment correctly" do
     fragment = mock(:fragment)
     filtered_content = "filteredyo"

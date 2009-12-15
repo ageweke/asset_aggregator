@@ -113,6 +113,22 @@ describe AssetAggregator::Core::AggregateType do
     @aggregate_type.all_subpaths.should == %w{bar baz bonk foo}
   end
   
+  it "should return the #aggregated_subpath_for of the first aggregator that has one" do
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+
+    source_position = mock(:source_position)
+    aggregators[0].should_receive(:aggregated_subpath_for).once.with(source_position).and_return("foo/bar")
+    @aggregate_type.aggregated_subpath_for(source_position).should == "foo/bar"
+    
+    aggregators[0].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
+    aggregators[1].should_receive(:aggregated_subpath_for).once.with(source_position).and_return("bar/baz")
+    @aggregate_type.aggregated_subpath_for(source_position).should == "bar/baz"
+
+    aggregators[0].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
+    aggregators[1].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
+    @aggregate_type.aggregated_subpath_for(source_position).should be_nil
+  end
+  
   it "should call the output handler class in the right order" do
     fragment1 = mock(:fragment1)
     fragment1.should_receive(:filtered_content).and_return("foo")

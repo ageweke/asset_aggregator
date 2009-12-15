@@ -64,6 +64,14 @@ describe AssetAggregator::Core::FragmentSet do
     @fragment_set.all_subpaths.should == %w{aaa/bar bar/baz}
   end
   
+  it "should return #aggregated_subpath_for correctly" do
+    @fragment_set.add(@fragment_1)
+    @fragment_set.add(make('aaa/bar', 'baz', 12345, 'whatever'))
+    @fragment_set.add(make('bar/baz', 'marph', 9999, 'yo'))
+    
+    @fragment_set.aggregated_subpath_for(AssetAggregator::Core::SourcePosition.new("foo", 12)).should == "bar/baz"
+  end
+  
   it "should #remove_all_for_file correctly" do
     fragment_2 = make('bar/baz', 'baz', 34, 'bonko')
     fragment_3 = make('foo/bar', 'baz', 72, 'honk')

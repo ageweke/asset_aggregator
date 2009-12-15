@@ -94,6 +94,14 @@ module AssetAggregator
         out.uniq.sort
       end
       
+      def aggregated_subpath_for(fragment_source_position)
+        @aggregators.each do |aggregator|
+          subpath = aggregator.aggregated_subpath_for(fragment_source_position)
+          return subpath if subpath
+        end
+        nil
+      end
+      
       # Applies a filter to any #Aggregator objects added during its execution -- this
       # method takes a block.. The filter is specified by +filter_name+, which can
       # be a String or Symbol, in which case we use the class

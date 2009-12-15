@@ -45,6 +45,15 @@ module AssetAggregator
         @fragments.map { |f| f.target_subpath }.uniq.sort
       end
       
+      # Given the #SourcePosition of a #Fragment, returns the #target_subpath for that
+      # #Fragment. Returns nil if there is no #Fragment with that #SourcePosition.
+      # Typically used to answer the question "if I need this #Fragment included on
+      # my page, which aggregated asset should I include?".
+      def aggregated_subpath_for(fragment_source_position)
+        out = @fragments.find { |f| f.source_position == fragment_source_position }
+        out.target_subpath if out
+      end
+      
       # Removes all #Fragment objects whose #SourcePosition indicates that they came from
       # the given file.
       def remove_all_for_file(file)

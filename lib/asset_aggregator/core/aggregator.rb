@@ -60,6 +60,16 @@ module AssetAggregator
         fragment_set.each_fragment_for(subpath, &proc)
       end
       
+      # Given the #SourcePosition of a #Fragment, returns the subpath to which
+      # that #Fragment has been aggregated. Returns nil if there is no #Fragment
+      # with that #SourcePosition. Typically used to answer the question
+      # "if I need this #Fragment included on my page, which aggregated asset
+      # should I include?".
+      def aggregated_subpath_for(fragment_source_position)
+        ensure_loaded!
+        fragment_set.aggregated_subpath_for(fragment_source_position)
+      end
+      
       private
       attr_reader :fragment_set
       
