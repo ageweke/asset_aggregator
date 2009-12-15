@@ -26,6 +26,7 @@ module AssetAggregator
       
       def serve(asset_type, params)
         subpath = params[:path]
+        subpath = subpath.join("/") if subpath.kind_of?(Array)
         
         content = AssetAggregator.content_for(asset_type, subpath) unless subpath.blank?
         if content

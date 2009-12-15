@@ -62,7 +62,7 @@ module AssetAggregator
       
       # A nice human-readable description.
       def to_s
-        ":static_files, \'#{@root}\'"
+        ":files, \'#{@root}\', ..."
       end
       
       private

@@ -1,2 +1,5 @@
 require 'file_extensions'
 require 'asset_aggregator'
+require 'asset_aggregator/rails/aggregated_controller'
+require 'asset_aggregator/rails/per_request_reference_set'
+require 'asset_aggregator/rails/per_view_references'
