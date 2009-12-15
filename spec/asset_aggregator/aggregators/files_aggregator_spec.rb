@@ -8,7 +8,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     @filters = [ ]
     @filesystem_impl = AssetAggregator::TestFilesystemImpl.new
     
-    @root = File.join(Rails.root, 'app', 'views')
+    @root = File.join(::Rails.root, 'app', 'views')
   end
   
   def make(root, include_proc = nil, &subpath_definition_proc)
@@ -39,7 +39,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
   
   it "should return a single file's fragment" do
     path = File.join(@root, 'foo', 'bar.css')
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_yield(path)
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path ])
     @filesystem_impl.set_content(path, 'hidey ho')
     
     aggregator = make(@root)
@@ -53,7 +53,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
   it "should not return dotfiles" do
     path1 = File.join(@root, 'foo', 'bar.css')
     path2 = File.join(@root, 'foo', '.bonk.css')
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_yield(path1).and_yield(path2)
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path1, path2 ])
     @filesystem_impl.set_content(path1, 'path1 content')
     
     aggregator = make(@root)
@@ -66,7 +66,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     path1 = File.join(@root, 'foo', 'bar.css')
     path2 = File.join(@root, 'foo')
     path3 = File.join(@root, 'foo', 'baz')
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_yield(path1).and_yield(path2).and_yield(path3)
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path1, path2, path3 ])
     @filesystem_impl.set_content(path1, 'path1 content')
     @filesystem_impl.set_directory(path2)
     @filesystem_impl.set_directory(path3)
@@ -82,7 +82,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       @path1 = File.join(@root, 'foo', 'bar.one')
       @path2 = File.join(@root, 'foo', 'baz.two')
       @path3 = File.join(@root, 'quux', 'marph.three')
-      @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_yield(@path1).and_yield(@path2).and_yield(@path3)
+      @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ @path1, @path2, @path3 ])
       @filesystem_impl.set_content(@path1, 'path1 content')
       @filesystem_impl.set_content(@path2, 'path2 content')
       @filesystem_impl.set_content(@path3, 'path3 content')
@@ -122,7 +122,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     
       # We don't need to check the time passed to #changed_files_since; that's checked
       # by the spec for #Aggregator.
-      @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_yield(@path1).and_yield(@path3)
+      @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_return([ @path1, @path3 ])
       @aggregator.refresh!
       check_fragments(@aggregator, 'foo', [
         { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content new' },
@@ -142,7 +142,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
         { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
       ])
       
-      @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_yield(@path2)
+      @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_return([ @path2 ])
       @filesystem_impl.set_does_not_exist(@path2, true)
       @aggregator.refresh!
       
@@ -246,10 +246,10 @@ describe AssetAggregator::Aggregators::FilesAggregator do
   end
   
   it "should use the file's name when outside Rails.root/app" do
-    @root = File.join(File.dirname(Rails.root), 'somewhere', 'else')
+    @root = File.join(File.dirname(::Rails.root), 'somewhere', 'else')
     path = File.join(@root, 'foo', 'bar.css')
     
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_yield(path)
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path ])
     @filesystem_impl.set_content(path, 'hidey ho')
     
     aggregator = make(@root)

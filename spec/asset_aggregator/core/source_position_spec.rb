@@ -13,10 +13,10 @@ describe AssetAggregator::Core::SourcePosition do
     before(:each) do
       @file = File.join(File.dirname(this_file), 'sample.txt')
       @terse_file = @file
-      rails_root = File.canonical_path(Rails.root)
+      rails_root = File.canonical_path(::Rails.root)
       
       if @terse_file[0..(rails_root.length - 1)] == rails_root
-        @terse_file = @terse_file[(Rails.root.length + 1)..-1]
+        @terse_file = @terse_file[(::Rails.root.length + 1)..-1]
       end
       
       @position = make(@file, 77)
@@ -114,8 +114,8 @@ describe AssetAggregator::Core::SourcePosition do
       @file = File.join(File.dirname(this_file), 'sample.txt')
       @terse_file = @file
       
-      if @terse_file[0..(Rails.root.length - 1)] == Rails.root
-        @terse_file = @terse_file[(Rails.root.length + 1)..-1]
+      if @terse_file[0..(::Rails.root.length - 1)] == ::Rails.root
+        @terse_file = @terse_file[(::Rails.root.length + 1)..-1]
       end
       
       @position = make(@file, nil)

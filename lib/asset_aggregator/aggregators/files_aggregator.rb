@@ -70,7 +70,7 @@ module AssetAggregator
       # Uses the #FileCache to go look out at its +root+, and pulls in content
       # from each file that has changed.
       def refresh_fragments_since(last_refresh_fragments_since_time)
-        @file_cache.changed_files_since(@root, last_refresh_fragments_since_time) do |changed_file|
+        @file_cache.changed_files_since(@root, last_refresh_fragments_since_time).each do |changed_file|
           next if File.basename(changed_file) =~ /^\./ || @filesystem_impl.directory?(changed_file) || (! @inclusion_proc.call(changed_file))
           
           fragment_set.remove_all_for_file(changed_file)
@@ -109,13 +109,13 @@ module AssetAggregator
       # constructor.
       def default_subpath_definition(file, content)
         file = @filesystem_impl.canonical_path(file)
-        rails_root_canonical = @filesystem_impl.canonical_path(Rails.root)
+        rails_root_canonical = @filesystem_impl.canonical_path(::Rails.root)
         
         out = File.basename(file)
         out = $1 if out =~ /^([^\.]+)\./
         
-        if file[0..(Rails.root.length - 1)] == rails_root_canonical
-          file = file[(Rails.root.length + 1)..-1] 
+        if file[0..(::Rails.root.length - 1)] == rails_root_canonical
+          file = file[(::Rails.root.length + 1)..-1] 
           components = file.split(File::SEPARATOR).map { |c| c.strip.downcase }
           out = components[2] if components.length > 3 && components[0] == 'app'
         end

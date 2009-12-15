@@ -28,7 +28,7 @@ module AssetAggregator
         # If it's not, returns its input.
         def trim_rails_root(path)
           out = path
-          rails_root = File.canonical_path(Rails.root)
+          rails_root = File.canonical_path(::Rails.root)
           if (out.length > rails_root.length + 1) && (out[0..(rails_root.length - 1)] == rails_root)
             out = out[(rails_root.length)..-1]
             out = $1 if out =~ %r{[/\\]+(.*)$}
