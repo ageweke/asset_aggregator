@@ -112,16 +112,6 @@
 # #AssetAggregator::Rails::AggregatedController will automatically add methods
 # to this controller that are named after any types you've aggregated
 module AssetAggregator
-=begin
-  Usage:
-  
-  AssetAggregator.aggregate :javascript do
-    add :asset_packager_compatibility
-    add :files, File.join(Rails.root, 'app', 'views'), '.js'
-    add :widget_inlines, File.join(Rails.root, 'app', 'views')
-  end
-=end
-  
   class << self
     def standard_instance
       @standard_instance ||= Impl.new
@@ -133,6 +123,14 @@ module AssetAggregator
     
     def refresh!
       standard_instance.refresh!
+    end
+    
+    def all_types
+      standard_instance.all_types
+    end
+    
+    def all_subpaths(type)
+      standard_instance.all_subpaths(type)
     end
     
     def content_for(type, subpath)
@@ -150,9 +148,20 @@ module AssetAggregator
       output_handler_class ||= "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
       @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_class, definition_proc)
     end
+    
+    def all_types
+      @aggregate_types.keys
+    end
 
     def content_for(type, subpath)
       aggregate_type(type).content_for(subpath)
+    end
+    
+    def all_subpaths(type)
+      out = [ ]
+      type = @aggregate_types[type]
+      out = type.all_subpaths if type
+      out
     end
     
     def refresh!
