@@ -111,6 +111,36 @@
 #
 # #AssetAggregator::Rails::AggregatedController will automatically add methods
 # to this controller that are named after any types you've aggregated
+#
+#
+#
+# = Ordering
+#
+# When including various assets, ordering is important -- this is true for both
+# JavaScript and CSS, as later JS or CSS can change the behavior of earlier JS
+# or CSS. 
+#
+# The #AssetAggregator follows these principles about ordering:
+#
+#   * Ordering among #Aggregator objects is defined. If, inside your #aggregate
+#     call, you #add two aggregators in order, then, in any aggregated file that
+#     contains content from both, all content from the first #Aggregator will
+#     precede all content from the second #Aggregator.
+#
+#   * All other ordering is alphabetical: within a single #Aggregator, content
+#     in an aggregated file will be ordered alphabetically by pathname, and,
+#     within a pathname, by source line number (in the rare case where you add
+#     multiple fragments of content from a single source file -- Erector widgets
+#     with inline assets are about the only case where this can happen currently).
+#     Also, if you use the automated reference-tracking capabilities of the
+#     #AssetAggregator, then references will be added in alphabetical order by
+#     aggregated filename.
+#
+# This may seem somewhat inflexible. However, it (a) allows dramatically simpler
+# configuration, (b) provides a deterministic ordering (moving your code to
+# another machine that happens to return files in a directory in a different
+# order won't suddenly break things), and (c) still lets you control ordering
+# anyway, by using naming schemes in your files to control ordering.
 module AssetAggregator
   class << self
     def standard_instance
