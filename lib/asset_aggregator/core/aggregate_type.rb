@@ -24,6 +24,44 @@ module AssetAggregator
         instance_eval(&definition_proc)
       end
       
+      # Given the #SourcePosition for a #Fragment aggregated by some #Aggregator
+      # for this type, returns that #Fragment. Returns nil if there are no
+      # #Fragment objects with the given #SourcePosition aggregated for this type
+      # at all.
+      def fragment_for(fragment_source_position)
+        fragment = nil
+        @aggregators.each { |agg| fragment ||= agg.fragment_for(fragment_source_position); return fragment if fragment }
+        nil
+      end
+      
+      # Given the #SourcePosition for a #Fragment aggregated by some #Aggregator
+      # for this type, returns the content we should render for that #Fragment.
+      # Returns nil if there are no #Fragment objects with the given
+      # #SourcePosition aggregated for this type at all.
+      def fragment_content_for(fragment_source_position)
+        aggregator = fragment = nil
+        @aggregators.each do |this_aggregator|
+          this_fragment = this_aggregator.fragment_for(fragment_source_position)
+          if this_fragment
+            fragment = this_fragment
+            aggregator = this_aggregator
+            break
+          end
+        end
+        
+        if fragment
+          output_handler = @output_handler_class.new(self, fragment.source_position.terse_file)
+          output_handler.start_all
+          output_handler.start_aggregator(aggregator)
+          output_handler.start_fragment(aggregator, fragment)
+          output_handler.fragment_content(aggregator, fragment, aggregator.filtered_content_from(fragment))
+          output_handler.end_fragment(aggregator, fragment)
+          output_handler.end_aggregator(aggregator)
+          output_handler.end_all
+          output_handler.text
+        end
+      end
+      
       # Tells this #AggregateType to go out and refresh its #Aggregators -- this
       # typically means looking at the disk again to see if files they use have changed,
       # and, if so, re-reading them. Note that this does NOT call #refresh! on the

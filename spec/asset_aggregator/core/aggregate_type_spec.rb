@@ -113,6 +113,24 @@ describe AssetAggregator::Core::AggregateType do
     @aggregate_type.all_subpaths.should == %w{bar baz bonk foo}
   end
   
+  it "should return a matching fragment with #fragment_for" do
+    source_position = mock(:source_position)
+    fragment = mock(:fragment)
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+    aggregators[0].should_receive(:fragment_for).once.with(source_position).and_return(nil)
+    aggregators[1].should_receive(:fragment_for).once.with(source_position).and_return(fragment)
+    @aggregate_type.fragment_for(source_position).should == fragment
+  end
+  
+  it "should return the first matching fragment with #fragment_for" do
+    source_position = mock(:source_position)
+    fragment = mock(:fragment)
+    fragment2 = mock(:fragment2)
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+    aggregators[0].should_receive(:fragment_for).once.with(source_position).and_return(fragment)
+    @aggregate_type.fragment_for(source_position).should == fragment
+  end
+  
   it "should return the #aggregated_subpath_for of the first aggregator that has one" do
     aggregators = @aggregate_type.instance_variable_get(:@aggregators)
 
@@ -127,6 +145,16 @@ describe AssetAggregator::Core::AggregateType do
     aggregators[0].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
     aggregators[1].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
     @aggregate_type.aggregated_subpath_for(source_position).should be_nil
+  end
+  
+  it "should return no fragment for #fragment_for if none matches" do
+    source_position = mock(:source_position)
+    fragment = mock(:fragment)
+    fragment2 = mock(:fragment2)
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+    aggregators[0].should_receive(:fragment_for).once.with(source_position).and_return(nil)
+    aggregators[1].should_receive(:fragment_for).once.with(source_position).and_return(nil)
+    @aggregate_type.fragment_for(source_position).should be_nil
   end
   
   it "should call the output handler class in the right order" do
@@ -147,7 +175,7 @@ describe AssetAggregator::Core::AggregateType do
     
 
     output_handler = mock(:output_handler)
-    @output_handler_class.should_receive(:new).and_return(output_handler)
+    @output_handler_class.should_receive(:new).with(@aggregate_type, subpath).and_return(output_handler)
     
     output_handler.should_receive(:start_all).ordered
     
@@ -174,5 +202,68 @@ describe AssetAggregator::Core::AggregateType do
     output_handler.should_receive(:text).ordered.and_return("output text")
     
     @aggregate_type.content_for(subpath).should == "output text"
+  end
+  
+  it "should return no output if asked for a subpath with no content" do
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+    (aggregator1, aggregator2) = aggregators
+    
+    subpath = 'bonk/whatever'
+    
+    output_handler = mock(:output_handler)
+    @output_handler_class.should_receive(:new).with(@aggregate_type, subpath).and_return(output_handler)
+    
+    output_handler.should_receive(:start_all).ordered
+    output_handler.should_receive(:start_aggregator).with(aggregator1).ordered
+    output_handler.should_receive(:end_aggregator).with(aggregator1).ordered
+    output_handler.should_receive(:separate_aggregators).with(aggregator1, aggregator2).ordered
+    output_handler.should_receive(:start_aggregator).with(aggregator2).ordered
+    output_handler.should_receive(:end_aggregator).with(aggregator2).ordered
+    output_handler.should_receive(:end_all).ordered
+    
+    aggregator1.should_receive(:each_fragment_for).with(subpath)
+    aggregator2.should_receive(:each_fragment_for).with(subpath)
+    
+    @aggregate_type.content_for(subpath).should be_nil
+  end
+  
+  it "should call the output handler class in the right order when getting content for a single fragment" do
+    source_position = mock(:source_position, :terse_file => 'foo/bar')
+    
+    fragment = mock(:fragment, :source_position => source_position)
+    fragment.should_receive(:filtered_content).and_return("foo")
+    
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+    (aggregator1, aggregator2) = aggregators
+    
+    aggregator1.should_receive(:fragment_for).once.with(source_position).and_return(fragment)
+
+    output_handler = mock(:output_handler)
+    @output_handler_class.should_receive(:new).with(@aggregate_type, source_position.terse_file).and_return(output_handler)
+    
+    output_handler.should_receive(:start_all).ordered
+    
+    output_handler.should_receive(:start_aggregator).with(aggregator1).ordered
+    output_handler.should_receive(:start_fragment).with(aggregator1, fragment).ordered
+    output_handler.should_receive(:fragment_content).with(aggregator1, fragment, "foo").ordered
+    output_handler.should_receive(:end_fragment).with(aggregator1, fragment).ordered
+    output_handler.should_receive(:end_aggregator).with(aggregator1).ordered
+    output_handler.should_receive(:end_all).ordered
+    
+    output_handler.should_receive(:text).ordered.and_return("output text")
+    
+    @aggregate_type.fragment_content_for(source_position).should == "output text"
+  end
+  
+  it "should return no output if #fragment_content_for is called with a SourcePosition that's not found" do
+    source_position = mock(:source_position, :terse_file => 'foo/bar')
+    
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+    (aggregator1, aggregator2) = aggregators
+    
+    aggregator1.should_receive(:fragment_for).once.with(source_position).and_return(nil)
+    aggregator2.should_receive(:fragment_for).once.with(source_position).and_return(nil)
+
+    @aggregate_type.fragment_content_for(source_position).should be_nil
   end
 end
