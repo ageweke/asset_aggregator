@@ -17,7 +17,24 @@ describe AssetAggregator::Core::FragmentReference do
     @reference.descrip.should == @descrip
   end
   
+  it "should pass #aggregate_subpath through to the AssetAggregator passed in" do
+    subpath = 'foo/bar/baz'
+    asset_aggregator = mock(:asset_aggregator)
+    asset_aggregator.should_receive(:aggregated_subpath_for).once.with(@aggregate_type, @fragment_source_position).and_return(subpath)
+    @reference.aggregate_subpath(asset_aggregator).should == subpath
+  end
+  
+  it "should raise an error if there is no #aggregate_subpath for this fragment" do
+    asset_aggregator = mock(:asset_aggregator)
+    asset_aggregator.should_receive(:aggregated_subpath_for).once.with(@aggregate_type, @fragment_source_position).and_return(nil)
+    lambda { @reference.aggregate_subpath(asset_aggregator) }.should raise_error
+  end
+  
   context "when comparing" do
+    it "should order itself before any AggregateReference objects" do
+      (@reference <=> AssetAggregator::Core::AggregateReference.new(:foo, 'foo/bar', @reference_source_position, 'whatever')).should < 0
+    end
+
     it "should first compare on aggregate_type" do
       (@reference <=> AssetAggregator::Core::FragmentReference.new(:bar, @fragment_source_position, @reference_source_position, @descrip)).should > 0
       (@reference <=> AssetAggregator::Core::FragmentReference.new(:moo, @fragment_source_position, @reference_source_position, @descrip)).should < 0

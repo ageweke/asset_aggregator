@@ -29,9 +29,31 @@ module AssetAggregator
         @descrip = descrip
       end
       
+      # Returns the subpath at which the #Fragment referred to by this object is
+      # aggregated. You must pass in the top-level #AssetAggregator instance here; this
+      # is because we need to loop back around and ask it where the #Fragment in question
+      # wound up.
+      def aggregate_subpath(asset_aggregator)
+        out = asset_aggregator.aggregated_subpath_for(aggregate_type, fragment_source_position)
+        unless out
+          raise %{You declared a reference,
+#{self},
+that points to a fragment,
+#{fragment_source_position},
+that isn't actually aggregated by the AssetAggregator!
+
+You'll need to change your AssetAggregator configuration so that data in
+#{fragment_source_position}
+is aggregated, so that when you declare this reference, we know what
+aggregate we need to include.}
+        end
+        out
+      end
+      
       # Used in conjunction with #Comparable to implement ==, >, <=, etc.
       def <=>(other)
         out = (aggregate_type.to_s <=> other.aggregate_type.to_s)
+        out = -1 if out == 0 && other.kind_of?(AssetAggregator::Core::AggregateReference)
         out = (fragment_source_position <=> other.fragment_source_position) if out == 0
         out = (reference_source_position <=> other.reference_source_position) if out == 0
         out
