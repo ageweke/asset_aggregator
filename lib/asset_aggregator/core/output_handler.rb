@@ -7,7 +7,10 @@ module AssetAggregator
     class OutputHandler
       # Creates a new instance. +aggregate_type+ is the #AggregateType object that
       # we're outputting content for, and +subpath+ is the (#String) subpath that
-      # we're outputting content for.
+      # we're outputting content for. Note that +subpath+ can actually be the filename
+      # (with +Rails.root+ stripped off, if present) of a #Fragment, in the case
+      # where we're outputting a single fragment (used in development mode when
+      # requested).
       def initialize(aggregate_type, subpath)
         @aggregate_type = aggregate_type
         @subpath = subpath
