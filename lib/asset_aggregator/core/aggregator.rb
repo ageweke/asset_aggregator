@@ -22,6 +22,12 @@ module AssetAggregator
         @aggregate_type = aggregate_type
       end
       
+      # Given a #SourcePosition, returns the #Fragment with that
+      # #SourcePosition, if any.
+      def fragment_for(fragment_source_position)
+        fragment_set.for_source_position(fragment_source_position)
+      end
+      
       # Returns the set of all subpaths that this #Aggregator has content for.
       def all_subpaths
         ensure_loaded!
