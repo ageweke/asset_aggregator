@@ -19,6 +19,12 @@ module AssetAggregator
         @filtered_fragments = { }
         @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
       end
+      
+      # Given a #SourcePosition, returns the #Fragment that has that #SourcePosition,
+      # if any. Returns nil if none matches.
+      def for_source_position(source_position)
+        @fragments.detect { |f| f.source_position == source_position }
+      end
 
       # FOR TESTING ONLY. Sets the FilesystemImpl-compatible object that this class
       # will use to talk to the filesystem.

@@ -56,6 +56,19 @@ describe AssetAggregator::Core::FragmentSet do
     all_fragments_object_ids('foo/bar').should == [ ]
   end
   
+  it "should return #for_source_position correctly" do
+    fragment_2 = make('bar/baz', 'baz', 34, 'bonko')
+    fragment_3 = make('foo/bar', 'baz', 72, 'honk')
+    
+    [ @fragment_1, fragment_2, fragment_3 ].each { |f| @fragment_set.add(f) }
+    
+    @fragment_set.for_source_position(@fragment_1.source_position).should == @fragment_1
+    @fragment_set.for_source_position(fragment_2.source_position).should == fragment_2
+    @fragment_set.for_source_position(AssetAggregator::Core::SourcePosition.new('baz', 72)).should == fragment_3
+    @fragment_set.for_source_position(AssetAggregator::Core::SourcePosition.new('baz', 73)).should be_nil
+    @fragment_set.for_source_position(AssetAggregator::Core::SourcePosition.new('bax', 72)).should be_nil
+  end
+  
   it "should return #all_subpaths correctly" do
     @fragment_set.add(@fragment_1)
     @fragment_set.add(make('aaa/bar', 'baz', 12345, 'whatever'))
