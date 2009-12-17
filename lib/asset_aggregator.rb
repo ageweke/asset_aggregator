@@ -159,6 +159,14 @@ module AssetAggregator
       standard_instance.each_aggregate_reference_in_set(reference_set, type, &block)
     end
     
+    def fragment_for(type, fragment_source_position)
+      standard_instance.fragment_for(type, fragment_source_position)
+    end
+    
+    def fragment_content_for(type, fragment_source_position)
+      standard_instance.fragment_content_for(type, fragment_source_position)
+    end
+    
     def refresh!
       standard_instance.refresh!
     end
@@ -208,6 +216,20 @@ module AssetAggregator
       out = [ ]
       type = @aggregate_types[type]
       out = type.all_subpaths if type
+      out
+    end
+    
+    def fragment_content_for(type, fragment_source_position)
+      out = nil
+      type = @aggregate_types[type]
+      out = type.fragment_content_for(fragment_source_position) if type
+      out
+    end
+    
+    def fragment_for(type, fragment_source_position)
+      out = nil
+      type = @aggregate_types[type]
+      out = type.fragment_for(fragment_source_position) if type
       out
     end
     

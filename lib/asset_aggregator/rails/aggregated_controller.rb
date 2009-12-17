@@ -6,6 +6,10 @@ module AssetAggregator
           other.send(:define_method, asset_type) do
             serve(asset_type, params)
           end
+          
+          other.send(:define_method, "#{asset_type}_fragment") do
+            serve_fragment(asset_type, params)
+          end
         end
         
         other.send(:before_filter, :refresh_if_in_development)
@@ -24,10 +28,47 @@ module AssetAggregator
         end
       end
       
-      def serve(asset_type, params)
-        subpath = params[:path]
-        subpath = subpath.join("/") if subpath.kind_of?(Array)
+      def serve_fragment(asset_type, params)
+        source_file = subpath
+        source_line = nil
         
+        if source_file =~ /^(.*):\s*(\d+)\s*$/i
+          source_file = $1
+          source_line = $2.to_i
+        end
+        
+        source_file = [ source_file, "#{source_file}.#{params[:format]}", File.join(::Rails.root, source_file),
+          "#{File.join(::Rails.root, source_file)}.#{params[:format]}" ].detect { |f| File.exist?(f) }
+        
+        content = nil
+        if source_file
+          source_position = AssetAggregator::Core::SourcePosition.new(source_file, source_line)
+          content = AssetAggregator.fragment_content_for(asset_type, source_position)
+        end
+        
+        if content
+          render :text => content, :content_type => mime_type_for_asset_type(asset_type)
+        else
+          if ::Rails.env.development?
+            message = "No content found for asset type #{asset_type.inspect}, fragment source position #{source_position}"
+          else
+            message = "No content found."
+          end
+          
+          render :text => message, :status => :not_found
+        end
+      end
+      
+      def subpath
+        @subpath ||= begin
+          out = params[:path]
+          out = out.join("/") if out.kind_of?(Array)
+          raise "No path specified (with :path)" if out.blank?
+          out
+        end
+      end
+      
+      def serve(asset_type, params)
         content = AssetAggregator.content_for(asset_type, subpath) unless subpath.blank?
         if content
           render :text => content, :content_type => mime_type_for_asset_type(asset_type)
