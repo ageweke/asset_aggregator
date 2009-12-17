@@ -31,7 +31,11 @@ describe AssetAggregator::Core::FragmentReference do
   end
   
   context "when comparing" do
-    it "should order itself before any AggregateReference objects" do
+    it "should compare types against AggregateReference objects" do
+      (@reference <=> AssetAggregator::Core::AggregateReference.new(:bar, 'foo/bar', @reference_source_position, 'whatever')).should > 0
+    end
+    
+    it "should order itself before any AggregateReference objects with the same type" do
       (@reference <=> AssetAggregator::Core::AggregateReference.new(:foo, 'foo/bar', @reference_source_position, 'whatever')).should < 0
     end
 
