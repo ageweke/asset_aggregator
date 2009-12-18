@@ -1,11 +1,11 @@
 module AssetAggregator
   module Rails
     class PageReferencesOutputHandler
-      def initialize(asset_aggregator, context, options = { })
+      def initialize(asset_aggregator, object_to_call_helper_methods_on, options = { })
         require 'stringio'
         @out = StringIO.new
         @asset_aggregator = asset_aggregator
-        @context = context
+        @object_to_call_helper_methods_on = object_to_call_helper_methods_on
         @options = options
       end
       
@@ -85,7 +85,7 @@ module AssetAggregator
       end
       
       private
-      attr_reader :context, :options
+      attr_reader :object_to_call_helper_methods_on, :options
       
       def output(s)
         @out.puts s
@@ -97,8 +97,8 @@ module AssetAggregator
       
       def include_tag_for_url(aggregate_type, url)
         case aggregate_type
-        when :javascript then context.javascript_include_tag(url)
-        when :css then context.stylesheet_link_tag(url)
+        when :javascript then object_to_call_helper_methods_on.javascript_include_tag(url)
+        when :css then object_to_call_helper_methods_on.stylesheet_link_tag(url)
         else raise "Don't know how to take a URL and turn it into HTML that references that URL (e.g., the equivalent of <script src=\"...\">) for aggregates of type #{aggregate_type.inspect}; please subclass #{self.class.name}, override #aggregate_include_tag_for_url, and pass it in to PageReferenceSet#include_text"
         end
       end
@@ -112,11 +112,12 @@ module AssetAggregator
       end
       
       def aggregate_subpath_url_for(aggregate_type, subpath)
-        context.url_for(
+        object_to_call_helper_methods_on.url_for(
           :controller => (options[:aggregated_controller_name] || 'aggregated'),
           :action => aggregate_type.to_s,
           :path => subpath.split(%r{/+}),
-          :format => extension_for(aggregate_type))
+          :format => extension_for(aggregate_type),
+          :only_path => false)
       end
       
       def aggregate_include_tag_for_url(aggregate_type, subpath, url)
@@ -136,7 +137,7 @@ module AssetAggregator
         path[-1] = $1 if path[-1] =~ /^(.*)\.#{extension}$/i
         
         path[-1] += ":#{source_position.line}" if source_position.line
-        context.url_for(
+        object_to_call_helper_methods_on.url_for(
           :controller => (options[:aggregated_controller_name] || 'aggregated'),
           :action => "#{aggregate_type}_fragment",
           :path => path,

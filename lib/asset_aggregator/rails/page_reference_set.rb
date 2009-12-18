@@ -40,9 +40,9 @@ module AssetAggregator
         END
       end
       
-      def include_text(view, options = { })
+      def include_text(object_to_call_helper_methods_on, options = { })
         output_handler_class = options[:output_handler_class] || AssetAggregator::Rails::PageReferencesOutputHandler
-        output_handler = output_handler_class.new(AssetAggregator.standard_instance, view, options)
+        output_handler = output_handler_class.new(AssetAggregator.standard_instance, object_to_call_helper_methods_on, options)
         
         output_handler.start_all
         

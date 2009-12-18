@@ -1,10 +1,10 @@
 module AssetAggregator
   module Rails
-    module PerRequestReferenceSet
+    module ControllerMethods
       class << self
         def included(other)
+          other.send(:include, AssetAggregator::Rails::Requires)
           other.send(:helper_method, :asset_aggregator_page_reference_set)
-          other.send(:helper_method, :asset_aggregator_page_references_text)
         end
       end
       
@@ -15,10 +15,8 @@ module AssetAggregator
       def asset_aggregator_page_reference_set
         @asset_aggregator_page_reference_set ||= create_asset_aggregator_page_reference_set
       end
-      
-      def asset_aggregator_page_references_text(view, options = { })
-        asset_aggregator_page_reference_set.include_text(view, options)
-      end
     end
   end
 end
+
+ActionView::Base.send(:include, AssetAggregator::Rails::Requires)

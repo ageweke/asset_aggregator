@@ -3,7 +3,6 @@ module AssetAggregator
     module PerViewReferences
       class << self
         def rendering_template(view, template)
-          $stderr.puts ">>> RENDERING TEMPLATE: #{template.filename}"
           @on_view_proc.call(view, template) if @on_view_proc
         end
         
