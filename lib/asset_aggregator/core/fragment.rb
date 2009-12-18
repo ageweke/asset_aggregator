@@ -5,7 +5,7 @@ module AssetAggregator
     # that will get wrapped up into an aggregated asset by an #Aggregator.
     #
     # Each fragment records its content, its #SourcePosition (file, or file and line,
-    # as appropriate), and its +target_subpath+ -- the subpath it should end up at when
+    # as appropriate), and its +target_subpaths+ -- the subpaths it should end up at when
     # being aggregated. It's up to the #Aggregator that creates this #Fragment to decide
     # what the target subpath should be, as each #Aggregator may assign it differently,
     # based on the directory the file is in, a configuration file, a line of code, or
@@ -13,23 +13,23 @@ module AssetAggregator
     #
     # #Fragment objects are #Comparable, and #hash correctly; they compare and hash
     # based on their +source_position+ only. It turns out that for our uses, this is
-    # most useful. If you need to compare them based on +content+ or +target_subpath+,
+    # most useful. If you need to compare them based on +content+ or +target_subpaths+,
     # you're welcome to add your own methods or make your own wrapper. Don't change these,
     # though, or things will break.
     class Fragment
       include Comparable
       
-      attr_reader :target_subpath, :source_position, :content
+      attr_reader :target_subpaths, :source_position, :content
       
-      # Creates a new instance. +target_subpath+ is the target subpath that this
+      # Creates a new instance. +target_subpaths+ are the target subpaths that this
       # #Fragment should end up at, without the extension or URL prefix (e.g.,
       # +foo/bar/baz+ for something that might end up accessed as
       # +http://myhost/javascripts/aggregated/foo/bar/baz.js+). +source_position+
       # is a #SourcePosition instance, representing the file this #Fragment came
       # from (or file and line, if it's not the entire file); +content+ is the actual
       # content of the data, byte-for-byte verbatim.
-      def initialize(target_subpath, source_position, content)
-        @target_subpath = target_subpath
+      def initialize(target_subpaths, source_position, content)
+        @target_subpaths = Array(target_subpaths)
         @source_position = source_position
         @content = content
       end

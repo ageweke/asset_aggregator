@@ -52,9 +52,12 @@ module AssetAggregator
         subpath_to_reference_map = { }
         
         @references.select { |r| r.aggregate_type == aggregate_type_symbol }.each do |reference|
-          subpath = reference.aggregate_subpath(asset_aggregator)
-          subpath_to_reference_map[subpath] ||= [ ]
-          subpath_to_reference_map[subpath] << reference
+          # XXX TODO: DO SOMETHING AWESOME TO FIGURE OUT WHAT SUBPATHS ARE POSSIBLE
+          subpaths = reference.aggregate_subpaths(asset_aggregator)
+          subpaths.each do |subpath|
+            subpath_to_reference_map[subpath] ||= [ ]
+            subpath_to_reference_map[subpath] << reference
+          end
         end
         
         subpath_to_reference_map.keys.sort.each { |k| block.call(k, subpath_to_reference_map[k].sort) }

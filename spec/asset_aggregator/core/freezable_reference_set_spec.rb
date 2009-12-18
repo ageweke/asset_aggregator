@@ -19,7 +19,7 @@ describe AssetAggregator::Core::FreezableReferenceSet do
     ref1 = make_ref(:foo, 'bar', 'baz', 'whatever')
     @set.add(ref1)
     
-    @asset_aggregator.should_receive(:aggregated_subpath_for).with(:foo, ref1.fragment_source_position).and_return('agg_1')
+    @asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref1.fragment_source_position).and_return([ 'agg_1', 'agg_2' ])
     @set.each_aggregate_reference(:foo, @asset_aggregator) { |subpath, references| }
     
     ref2 = make_ref(:foo, 'bar', 'bonk', 'something else')
@@ -30,7 +30,7 @@ describe AssetAggregator::Core::FreezableReferenceSet do
     ref1 = make_ref(:foo, 'bar', 'baz', 'whatever')
     @set.add(ref1)
     
-    @asset_aggregator.should_receive(:aggregated_subpath_for).with(:foo, ref1.fragment_source_position).and_return('agg_1')
+    @asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref1.fragment_source_position).and_return([ 'agg_1', 'agg_2' ])
     @set.each_aggregate_reference(:foo, @asset_aggregator) { |subpath, references| }
     
     ref2 = make_ref(:foo, 'bar2', 'bonk', 'something else')

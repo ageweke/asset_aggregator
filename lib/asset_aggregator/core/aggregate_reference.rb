@@ -42,11 +42,11 @@ module AssetAggregator
         out
       end
       
-      # Returns the subpath that this reference refers to. This is present to
+      # Returns the +subpath+ that this reference refers to. This is present to
       # make it compatible with #FragmentReference, which does considerably
       # more work to implement this method.
-      def aggregate_subpath(asset_aggregator)
-        subpath
+      def aggregate_subpaths(asset_aggregator)
+        [ subpath ]
       end
       
       # Returns a nice string, so that we can put this in comments, etc.

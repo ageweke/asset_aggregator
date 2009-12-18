@@ -66,14 +66,13 @@ module AssetAggregator
         fragment_set.each_fragment_for(subpath, &proc)
       end
       
-      # Given the #SourcePosition of a #Fragment, returns the subpath to which
-      # that #Fragment has been aggregated. Returns nil if there is no #Fragment
-      # with that #SourcePosition. Typically used to answer the question
-      # "if I need this #Fragment included on my page, which aggregated asset
-      # should I include?".
-      def aggregated_subpath_for(fragment_source_position)
+      # Given the #SourcePosition of a #Fragment, returns an #Array of all
+      # subpaths to which that #Fragment should be aggregated. Typically used
+      # to answer the question "if I need this #Fragment included on my page,
+      # which aggregated assets could I include?".
+      def aggregated_subpaths_for(fragment_source_position)
         ensure_loaded!
-        fragment_set.aggregated_subpath_for(fragment_source_position)
+        fragment_set.aggregated_subpaths_for(fragment_source_position)
       end
       
       private
@@ -95,8 +94,27 @@ module AssetAggregator
       # Given the content of a fragment, tells whether it is 'tagged' with
       # an explicit subpath. This is a means of overriding, on a file-by-file
       # basis, the subpath to which a fragment of content maps.
-      def tagged_subpath(source_path, content)
-        $1.strip.downcase if content =~ /ASSET[\s_]*TARGET[\s:]*(\S+)/
+      def update_with_tagged_subpaths(source_path, content, target_subpaths)
+        out = target_subpaths.dup
+        if content =~ /ASSET[\s_]*TARGET[\s:]*(\S+[^\n\r]+)/
+          modification_string = $1.strip.downcase
+          if modification_string =~ /^add\s+(.*)$/
+            out |= paths_from($1)
+          elsif modification_string =~ /^remove\s+(.*)$/
+            out -= paths_from($1)
+          elsif modification_string =~ /^exactly\s+(.*)$/
+            out = paths_from($1)
+          else
+            out = paths_from(modification_string)
+          end
+        end
+        out.sort
+      end
+      
+      # Given a list of paths separated by spaces and possibly commas,
+      # returns the paths as a list
+      def paths_from(s)
+        s.split(/\s*[\s,]\s*/).map { |s| s.strip }
       end
     end
   end

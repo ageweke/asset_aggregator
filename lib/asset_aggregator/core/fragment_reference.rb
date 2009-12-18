@@ -29,13 +29,13 @@ module AssetAggregator
         @descrip = descrip
       end
       
-      # Returns the subpath at which the #Fragment referred to by this object is
+      # Returns the subpaths at which the #Fragment referred to by this object is
       # aggregated. You must pass in the top-level #AssetAggregator instance here; this
       # is because we need to loop back around and ask it where the #Fragment in question
       # wound up.
-      def aggregate_subpath(asset_aggregator)
-        out = asset_aggregator.aggregated_subpath_for(aggregate_type, fragment_source_position)
-        unless out
+      def aggregate_subpaths(asset_aggregator)
+        out = asset_aggregator.aggregated_subpaths_for(aggregate_type, fragment_source_position)
+        if out.empty?
           raise %{You declared a reference,
 #{self},
 that points to a fragment,

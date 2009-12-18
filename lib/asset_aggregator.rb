@@ -151,8 +151,8 @@ module AssetAggregator
       standard_instance.set_aggregate_type(type, output_handler, definition_proc)
     end
     
-    def aggregated_subpath_for(type, fragment_source_position)
-      standard_instance.aggregated_subpath_for(type, fragment_source_position)
+    def aggregated_subpaths_for(type, fragment_source_position)
+      standard_instance.aggregated_subpaths_for(type, fragment_source_position)
     end
 
     def each_aggregate_reference_in_set(reference_set, type, &block)
@@ -195,9 +195,9 @@ module AssetAggregator
       @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_class, definition_proc)
     end
     
-    def aggregated_subpath_for(type, fragment_source_position)
+    def aggregated_subpaths_for(type, fragment_source_position)
       type = @aggregate_types[type] || (raise "No such aggregate type #{type.inspect}")
-      type.aggregated_subpath_for(fragment_source_position)
+      type.aggregated_subpaths_for(fragment_source_position)
     end
     
     def each_aggregate_reference_in_set(reference_set, type, &block)

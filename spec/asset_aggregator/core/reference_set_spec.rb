@@ -31,17 +31,17 @@ describe AssetAggregator::Core::ReferenceSet do
     [ @ref1, ref2, ref3, ref4, ref5, ref6 ].each { |r| @reference_set.add(r) }
     
     asset_aggregator = mock(:asset_aggregator)
-    asset_aggregator.should_receive(:aggregated_subpath_for).with(:foo, @ref1.fragment_source_position).and_return('agg_1')
-    asset_aggregator.should_receive(:aggregated_subpath_for).with(:foo, ref3.fragment_source_position).and_return('agg_2')
-    asset_aggregator.should_receive(:aggregated_subpath_for).with(:foo, ref4.fragment_source_position).and_return('agg_1')
-    asset_aggregator.should_receive(:aggregated_subpath_for).with(:foo, ref6.fragment_source_position).and_return('agg_1')
+    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, @ref1.fragment_source_position).and_return([ 'agg_1', 'agg_3' ])
+    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref3.fragment_source_position).and_return([ 'agg_2', 'agg_3' ])
+    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref4.fragment_source_position).and_return([ 'agg_1', 'agg_3' ])
+    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref6.fragment_source_position).and_return([ 'agg_1', 'agg_4' ])
     
     output = [ ]
     @reference_set.each_aggregate_reference(:foo, asset_aggregator) do |subpath, references|
       output << [ subpath, references ]
     end
     
-    output.length.should == 2
+    output.length.should == 4
 
     output[0][0].should == 'agg_1'
     references = output[0][1]
@@ -54,6 +54,18 @@ describe AssetAggregator::Core::ReferenceSet do
     references = output[1][1]
     references.length.should == 1
     references[0].reference_source_position.file.should == File.canonical_path('bonk')
+    
+    output[2][0].should == 'agg_3'
+    references = output[2][1]
+    references.length.should == 3
+    references[0].reference_source_position.file.should == File.canonical_path('baz')
+    references[1].reference_source_position.file.should == File.canonical_path('baz')
+    references[2].reference_source_position.file.should == File.canonical_path('bonk')
+    
+    output[3][0].should == 'agg_4'
+    references = output[3][1]
+    references.length.should == 1
+    references[0].reference_source_position.file.should == File.canonical_path('hooo')
   end
   
   it "should return the set of aggregate types correctly" do

@@ -27,9 +27,8 @@ module AssetAggregator
       #      all content into a file with its same name (sort of a pointless
       #      use of the #AssetAggregator).
       #
-      #      Note that files tagged with an explicit subpath (see
-      #      #Aggregator.#tagged_subpath) will use the tagged subpath, and not
-      #      be passed to this block.
+      #      Note that files tagged with explicit subpath(s) (see
+      #      #Aggregator.#update_with_tagged_subpaths) can override this.
       #
       # By default (if no +subpath_definition_proc+ is supplied), if content
       # is underneath #{Rails.root}/app/, and is nested at least 3 levels deep
@@ -76,9 +75,10 @@ module AssetAggregator
           fragment_set.remove_all_for_file(changed_file)
           if @filesystem_impl.exist?(changed_file)
             content = @filesystem_impl.read(changed_file)
-            target_subpath = tagged_subpath(changed_file, content) || @subpath_definition_proc.call(changed_file, content)
-          
-            fragment_set.add(AssetAggregator::Core::Fragment.new(target_subpath, AssetAggregator::Core::SourcePosition.new(changed_file, nil), content))
+            target_subpaths = Array(@subpath_definition_proc.call(changed_file, content))
+            target_subpaths = update_with_tagged_subpaths(changed_file, content, target_subpaths)
+            
+            fragment_set.add(AssetAggregator::Core::Fragment.new(target_subpaths, AssetAggregator::Core::SourcePosition.new(changed_file, nil), content))
           end
         end
       end

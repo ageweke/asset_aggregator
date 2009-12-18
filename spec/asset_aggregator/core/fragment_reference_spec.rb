@@ -17,17 +17,17 @@ describe AssetAggregator::Core::FragmentReference do
     @reference.descrip.should == @descrip
   end
   
-  it "should pass #aggregate_subpath through to the AssetAggregator passed in" do
-    subpath = 'foo/bar/baz'
+  it "should pass #aggregate_subpaths through to the AssetAggregator passed in" do
+    subpaths = [ 'foo/bar/baz', 'a/b/c' ]
     asset_aggregator = mock(:asset_aggregator)
-    asset_aggregator.should_receive(:aggregated_subpath_for).once.with(@aggregate_type, @fragment_source_position).and_return(subpath)
-    @reference.aggregate_subpath(asset_aggregator).should == subpath
+    asset_aggregator.should_receive(:aggregated_subpaths_for).once.with(@aggregate_type, @fragment_source_position).and_return(subpaths)
+    @reference.aggregate_subpaths(asset_aggregator).should == subpaths
   end
   
-  it "should raise an error if there is no #aggregate_subpath for this fragment" do
+  it "should raise an error if there are no #aggregate_subpaths for this fragment" do
     asset_aggregator = mock(:asset_aggregator)
-    asset_aggregator.should_receive(:aggregated_subpath_for).once.with(@aggregate_type, @fragment_source_position).and_return(nil)
-    lambda { @reference.aggregate_subpath(asset_aggregator) }.should raise_error
+    asset_aggregator.should_receive(:aggregated_subpaths_for).once.with(@aggregate_type, @fragment_source_position).and_return([ ])
+    lambda { @reference.aggregate_subpaths(asset_aggregator) }.should raise_error
   end
   
   context "when comparing" do

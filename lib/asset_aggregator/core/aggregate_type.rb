@@ -132,12 +132,15 @@ module AssetAggregator
         out.uniq.sort
       end
       
-      def aggregated_subpath_for(fragment_source_position)
+      # Given the #SourcePosition of a #Fragment, returns the set of all distinct subpaths
+      # at which that #Fragment is aggregated. This is generally used to answer the
+      # question "if I need fragment X, which subpaths could I include to get it?".
+      def aggregated_subpaths_for(fragment_source_position)
+        subpaths = [ ]
         @aggregators.each do |aggregator|
-          subpath = aggregator.aggregated_subpath_for(fragment_source_position)
-          return subpath if subpath
+          subpaths |= aggregator.aggregated_subpaths_for(fragment_source_position)
         end
-        nil
+        subpaths.sort
       end
       
       # Applies a filter to any #Aggregator objects added during its execution -- this

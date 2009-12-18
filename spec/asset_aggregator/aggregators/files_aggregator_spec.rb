@@ -13,7 +13,6 @@ describe AssetAggregator::Aggregators::FilesAggregator do
   
   def make(root, include_proc = nil, &subpath_definition_proc)
     out = AssetAggregator::Aggregators::FilesAggregator.new(@aggregate_type, @file_cache, @filters, root, include_proc, &subpath_definition_proc)
-    # out.instance_variable_set(:@fragment_set, @test_fragment_set)
     out.filesystem_impl = @filesystem_impl
     out
   end
@@ -30,7 +29,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     actual_fragments.each_with_index do |actual_fragment, index|
       expected_fragment = expected_fragments[index]
       
-      actual_fragment.target_subpath.should == expected_fragment[:target_subpath]
+      actual_fragment.target_subpaths.should == expected_fragment[:target_subpaths]
       actual_fragment.source_position.file.should == expected_fragment[:file]
       actual_fragment.source_position.line.should == expected_fragment[:line]
       actual_fragment.content.should == expected_fragment[:content]
@@ -44,7 +43,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     
     aggregator = make(@root)
     check_fragments(aggregator, 'foo', [
-      { :target_subpath => 'foo', :file => path, :line => nil, :content => 'hidey ho' }
+      { :target_subpaths => [ 'foo' ], :file => path, :line => nil, :content => 'hidey ho' }
     ])
     
     check_fragments(aggregator, 'bar', [ ])
@@ -58,7 +57,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     
     aggregator = make(@root)
     check_fragments(aggregator, 'foo', [
-      { :target_subpath => 'foo', :file => path1, :line => nil, :content => 'path1 content' }
+      { :target_subpaths => [ 'foo' ], :file => path1, :line => nil, :content => 'path1 content' }
     ])
   end
   
@@ -73,7 +72,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     
     aggregator = make(@root)
     check_fragments(aggregator, 'foo', [
-      { :target_subpath => 'foo', :file => path1, :line => nil, :content => 'path1 content' }
+      { :target_subpaths => [ 'foo' ], :file => path1, :line => nil, :content => 'path1 content' }
     ])
   end
   
@@ -92,32 +91,32 @@ describe AssetAggregator::Aggregators::FilesAggregator do
 
     it "should return multiple files' fragments" do
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' },
-        { :target_subpath => 'foo', :file => @path2, :line => nil, :content => 'path2 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' },
+        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => 'path2 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     end
   
     it "should only detect changes on files on refresh!" do
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' },
-        { :target_subpath => 'foo', :file => @path2, :line => nil, :content => 'path2 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' },
+        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => 'path2 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     
       @filesystem_impl.set_content(@path1, 'path1 content new')
       @filesystem_impl.set_content(@path3, 'path3 content new')
     
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' },
-        { :target_subpath => 'foo', :file => @path2, :line => nil, :content => 'path2 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' },
+        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => 'path2 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     
       # We don't need to check the time passed to #changed_files_since; that's checked
@@ -125,21 +124,21 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_return([ @path1, @path3 ])
       @aggregator.refresh!
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content new' },
-        { :target_subpath => 'foo', :file => @path2, :line => nil, :content => 'path2 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content new' },
+        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => 'path2 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content new' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content new' }
       ])
     end
   
     it "should remove fragments from deleted files" do
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' },
-        { :target_subpath => 'foo', :file => @path2, :line => nil, :content => 'path2 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' },
+        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => 'path2 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
       
       @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_return([ @path2 ])
@@ -147,27 +146,27 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       @aggregator.refresh!
       
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     end
     
     it "should obey the inclusion proc" do
       @aggregator = make(@root, Proc.new { |f| File.basename(f) =~ /bar/ || File.basename(f) =~ /marph/ })
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     end
 
     it "should allow a single extension as the inclusion proc" do
       @aggregator = make(@root, 'one')
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' }
       ])
       check_fragments(@aggregator, 'quux', [ ])
     end
@@ -175,20 +174,20 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     it "should allow several extensions as the inclusion proc" do
       @aggregator = make(@root, [ 'one', 'three' ])
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     end
     
     it "should allow dots in the extensions, and be case-insensitive" do
       @aggregator = make(@root, [ '.one', '.ThRee' ])
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     end
 
@@ -196,11 +195,24 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       new_content = "path2 content\n\nASSET TARGET: quux\nwhatever yo"
       @filesystem_impl.set_content(@path2, new_content)
       check_fragments(@aggregator, 'foo', [
-        { :target_subpath => 'foo', :file => @path1, :line => nil, :content => 'path1 content' },
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' },
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpath => 'quux', :file => @path2, :line => nil, :content => new_content },
-        { :target_subpath => 'quux', :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path2, :line => nil, :content => new_content },
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
+      ])
+    end
+
+    it "should obey tagged subpaths with addition" do
+      new_content = "path2 content\n\nASSET TARGET: add quux\nwhatever yo"
+      @filesystem_impl.set_content(@path2, new_content)
+      check_fragments(@aggregator, 'foo', [
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' },
+        { :target_subpaths => [ 'foo', 'quux' ], :file => @path2, :line => nil, :content => new_content },
+      ])
+      check_fragments(@aggregator, 'quux', [
+        { :target_subpaths => [ 'foo', 'quux' ], :file => @path2, :line => nil, :content => new_content },
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
     end
     
@@ -220,13 +232,13 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       
       it "should obey the subpath definition proc, and pass filename and file content" do
         check_fragments(@aggregator, 'one', [
-          { :target_subpath => 'one', :file => @path1, :line => nil, :content => 'path1 content' },
+          { :target_subpaths => [ 'one' ], :file => @path1, :line => nil, :content => 'path1 content' },
         ])
         check_fragments(@aggregator, 'two', [
-          { :target_subpath => 'two', :file => @path2, :line => nil, :content => 'path2 content' }
+          { :target_subpaths => [ 'two' ], :file => @path2, :line => nil, :content => 'path2 content' }
         ])
         check_fragments(@aggregator, 'three', [
-          { :target_subpath => 'three', :file => @path3, :line => nil, :content => 'path3 content' },
+          { :target_subpaths => [ 'three' ], :file => @path3, :line => nil, :content => 'path3 content' },
         ])
       end
     
@@ -234,12 +246,12 @@ describe AssetAggregator::Aggregators::FilesAggregator do
         new_content = "path2 content\nASSET TARGET: one"
         @filesystem_impl.set_content(@path2, new_content)
         check_fragments(@aggregator, 'one', [
-          { :target_subpath => 'one', :file => @path1, :line => nil, :content => 'path1 content' },
-          { :target_subpath => 'one', :file => @path2, :line => nil, :content => new_content }
+          { :target_subpaths => [ 'one' ], :file => @path1, :line => nil, :content => 'path1 content' },
+          { :target_subpaths => [ 'one' ], :file => @path2, :line => nil, :content => new_content }
         ])
         check_fragments(@aggregator, 'two', [ ])
         check_fragments(@aggregator, 'three', [
-          { :target_subpath => 'three', :file => @path3, :line => nil, :content => 'path3 content' },
+          { :target_subpaths => [ 'three' ], :file => @path3, :line => nil, :content => 'path3 content' },
         ])
       end
     end
@@ -254,7 +266,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     
     aggregator = make(@root)
     check_fragments(aggregator, 'bar', [
-      { :target_subpath => 'bar', :file => path, :line => nil, :content => 'hidey ho' }
+      { :target_subpaths => [ 'bar' ], :file => path, :line => nil, :content => 'hidey ho' }
     ])
     
     check_fragments(aggregator, 'foo', [ ])

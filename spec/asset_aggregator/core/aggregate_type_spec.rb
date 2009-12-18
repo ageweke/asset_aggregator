@@ -131,20 +131,17 @@ describe AssetAggregator::Core::AggregateType do
     @aggregate_type.fragment_for(source_position).should == fragment
   end
   
-  it "should return the #aggregated_subpath_for of the first aggregator that has one" do
+  it "should return the sorted union of aggregators' #aggregated_subpaths_for for its own #aggregated_subpaths_for" do
     aggregators = @aggregate_type.instance_variable_get(:@aggregators)
 
     source_position = mock(:source_position)
-    aggregators[0].should_receive(:aggregated_subpath_for).once.with(source_position).and_return("foo/bar")
-    @aggregate_type.aggregated_subpath_for(source_position).should == "foo/bar"
-    
-    aggregators[0].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
-    aggregators[1].should_receive(:aggregated_subpath_for).once.with(source_position).and_return("bar/baz")
-    @aggregate_type.aggregated_subpath_for(source_position).should == "bar/baz"
+    aggregators[0].should_receive(:aggregated_subpaths_for).once.with(source_position).and_return([ "foo/bar", "bar/baz" ])
+    aggregators[1].should_receive(:aggregated_subpaths_for).once.with(source_position).and_return([ "bar/quux", "bar/baz" ])
+    @aggregate_type.aggregated_subpaths_for(source_position).should == [ "bar/baz", "bar/quux", "foo/bar" ]
 
-    aggregators[0].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
-    aggregators[1].should_receive(:aggregated_subpath_for).once.with(source_position).and_return(nil)
-    @aggregate_type.aggregated_subpath_for(source_position).should be_nil
+    aggregators[0].should_receive(:aggregated_subpaths_for).once.with(source_position).and_return([ ])
+    aggregators[1].should_receive(:aggregated_subpaths_for).once.with(source_position).and_return([ "foo/bar" ])
+    @aggregate_type.aggregated_subpaths_for(source_position).should == [ "foo/bar" ]
   end
   
   it "should return no fragment for #fragment_for if none matches" do

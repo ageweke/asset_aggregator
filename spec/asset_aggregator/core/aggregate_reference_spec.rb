@@ -17,9 +17,9 @@ describe AssetAggregator::Core::AggregateReference do
     @aggregate_reference.descrip.should == @descrip
   end
   
-  it "should return its own subpath for #aggregate_subpath" do
+  it "should return its own subpath for #aggregate_subpaths" do
     asset_aggregator = mock(:asset_aggregator)
-    @aggregate_reference.aggregate_subpath(asset_aggregator).should == @subpath
+    @aggregate_reference.aggregate_subpaths(asset_aggregator).should == [ @subpath ]
   end
   
   def make(type, subpath, reference_source_position, descrip)

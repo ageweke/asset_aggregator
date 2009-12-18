@@ -50,14 +50,14 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.fragment_for(source_position_2).should be_nil
   end
   
-  it "should return the right #aggregated_subpath_for, and make sure it's refreshed first (but only once)" do
+  it "should return the right #aggregated_subpaths_for, and make sure it's refreshed first (but only once)" do
     source_position = mock(:source_position)
-    @test_fragment_set.should_receive(:aggregated_subpath_for).once.with(source_position).and_return("a/b/c/d/e")
-    @aggregator.aggregated_subpath_for(source_position).should == "a/b/c/d/e"
+    @test_fragment_set.should_receive(:aggregated_subpaths_for).once.with(source_position).and_return([ "a/b/c/d/e", "q/r/s" ])
+    @aggregator.aggregated_subpaths_for(source_position).should == [ "a/b/c/d/e", "q/r/s" ]
     @aggregator.refresh_fragments_since_calls.should == [ nil ]
 
-    @test_fragment_set.should_receive(:aggregated_subpath_for).once.with(source_position).and_return("a/b/c/d/e")
-    @aggregator.aggregated_subpath_for(source_position).should == "a/b/c/d/e"
+    @test_fragment_set.should_receive(:aggregated_subpaths_for).once.with(source_position).and_return([ "a/b/c/d/e", "q/r/s" ])
+    @aggregator.aggregated_subpaths_for(source_position).should == [ "a/b/c/d/e", "q/r/s" ]
     @aggregator.refresh_fragments_since_calls.should == [ nil ]
   end
   
@@ -100,13 +100,33 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.refresh_fragments_since_calls.should == [ nil ]
   end
   
-  it "should find the tagged subpath only when appropriate" do
-    @aggregator.send(:tagged_subpath, 'foo/bar', "hi ho ho").should be_nil
-    @aggregator.send(:tagged_subpath, 'foo/bar', %{hi ho ho
-      bonk
-      ASSET yo}).should be_nil
-    @aggregator.send(:tagged_subpath, 'foo/bar', %{hi ho ho
-      ASSET TARGET foobarbaz
-      bonk}).should == 'foobarbaz'
+  context "when looking at tagged subpaths" do
+    before :each do
+      @subpaths = %w{foo/bar bar/baz}
+    end
+    
+    def check(content)
+      @aggregator.send(:update_with_tagged_subpaths, "a/b", content, @subpaths)
+    end
+    
+    it "should not change subpaths if nothing is specified" do
+      check("hi ho ho").should == %w{bar/baz foo/bar}
+    end
+    
+    it "should add subpaths if requested" do
+      check("hi ho ho\n foo ASSET TARGET add foo/bar bonk/baz  \nmonkeyshines").should == %w{bar/baz bonk/baz foo/bar}
+    end
+    
+    it "should remove subpaths if requested" do
+      check("hi ho ho\n foo ASSET TARGET: remove bonk/baz foo/bar  \nmonkeyshines").should == %w{bar/baz}
+    end
+    
+    it "should set subpaths if requested" do
+      check("hi ho ho\n foo ASSET TARGET : exactly a/b foo/bar a/y  \nmonkeyshines").should == %w{a/b a/y foo/bar}
+    end
+    
+    it "should set subpaths by default" do
+      check("hi ho ho\n foo ASSET TARGET : a/b foo/bar a/y  \nmonkeyshines").should == %w{a/b a/y foo/bar}
+    end
   end
 end

@@ -10,9 +10,13 @@ describe AssetAggregator::Core::Fragment do
   end
   
   it "should return the right components" do
-    @fragment.target_subpath.should == @target_subpath
+    @fragment.target_subpaths.should == [ @target_subpath ]
     @fragment.source_position.should == @source_position
     @fragment.content.should == @content
+  end
+  
+  it "should return the array of target subpaths, if supplied" do
+    AssetAggregator::Core::Fragment.new([ "a/b", "b/c" ], @source_position, @content).target_subpaths.should == [ "a/b", "b/c" ]
   end
   
   it "should hash and compare correctly" do

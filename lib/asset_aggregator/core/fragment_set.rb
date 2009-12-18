@@ -48,16 +48,16 @@ module AssetAggregator
       
       # Returns the set of all distinct subpaths that any #Fragment in this set has.
       def all_subpaths
-        @fragments.map { |f| f.target_subpath }.uniq.sort
+        @fragments.inject([ ]) { |out,f| out | f.target_subpaths }.uniq.sort
       end
       
-      # Given the #SourcePosition of a #Fragment, returns the #target_subpath for that
+      # Given the #SourcePosition of a #Fragment, returns the #target_subpaths for that
       # #Fragment. Returns nil if there is no #Fragment with that #SourcePosition.
       # Typically used to answer the question "if I need this #Fragment included on
-      # my page, which aggregated asset should I include?".
-      def aggregated_subpath_for(fragment_source_position)
+      # my page, which aggregated assets could I include?".
+      def aggregated_subpaths_for(fragment_source_position)
         out = @fragments.find { |f| f.source_position == fragment_source_position }
-        out.target_subpath if out
+        out.target_subpaths if out
       end
       
       # Removes all #Fragment objects whose #SourcePosition indicates that they came from
@@ -67,10 +67,10 @@ module AssetAggregator
         remove { |f| f.source_position.file == file }
       end
       
-      # Yields each #Fragment whose +target_subpath+ is the given +subpath+, in sorted
-      # order (by #SourcePosition).
+      # Yields each #Fragment that specifies +subpath+ as one of its given +target_subpaths+,
+      # in sorted order (by #SourcePosition).
       def each_fragment_for(subpath, &proc)
-        @fragments.select { |f| f.target_subpath == subpath }.sort.each(&proc)
+        @fragments.select { |f| f.target_subpaths.include?(subpath) }.sort.each(&proc)
       end
       
       # Given a #Fragment, returns its content as filtered through the +filters+
