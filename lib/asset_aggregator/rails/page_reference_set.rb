@@ -28,18 +28,6 @@ module AssetAggregator
         @reference_set.add(AssetAggregator::Core::AggregateReference.new(aggregate_type, aggregate_subpath, source_position, descrip || "#require_aggregate call"))
       end
       
-      [ :javascript, :css ].each do |aggregate_type|
-        module_eval <<-END
-          def require_#{aggregate_type}_fragment(fragment_file, source_position = nil, descrip = nil)
-            require_fragment(:#{aggregate_type}, fragment_file, source_position, descrip)
-          end
-          
-          def require_#{aggregate_type}_aggregate(aggregate_subpath, source_position = nil, descrip = nil)
-            require_aggregate(:#{aggregate_type}, aggregate_subpath, source_position, descrip)
-          end
-        END
-      end
-      
       def include_text(object_to_call_helper_methods_on, options = { })
         output_handler_class = options[:output_handler_class] || AssetAggregator::Rails::PageReferencesOutputHandler
         output_handler = output_handler_class.new(AssetAggregator.standard_instance, object_to_call_helper_methods_on, options)
