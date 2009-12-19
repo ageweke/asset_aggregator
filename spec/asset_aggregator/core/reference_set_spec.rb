@@ -21,51 +21,81 @@ describe AssetAggregator::Core::ReferenceSet do
     @reference_set.instance_variable_get(:@references).length.should == 1
   end
   
-  it "should yield subpaths and references correctly, in order" do
-    ref2 = make_ref(:foo, 'bar', 'baz', 'something else')
-    ref3 = make_ref(:foo, 'baz', 'bonk', 'whatever')
-    ref4 = make_ref(:foo, 'aaa', 'baz', 'more')
-    ref5 = make_ref(:bar, 'bar', 'baz', 'something else')
-    ref6 = make_ref(:foo, 'abc', 'hooo', 'something else')
-    
-    [ @ref1, ref2, ref3, ref4, ref5, ref6 ].each { |r| @reference_set.add(r) }
-    
-    asset_aggregator = mock(:asset_aggregator)
-    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, @ref1.fragment_source_position).and_return([ 'agg_1', 'agg_3' ])
-    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref3.fragment_source_position).and_return([ 'agg_2', 'agg_3' ])
-    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref4.fragment_source_position).and_return([ 'agg_1', 'agg_3' ])
-    asset_aggregator.should_receive(:aggregated_subpaths_for).with(:foo, ref6.fragment_source_position).and_return([ 'agg_1', 'agg_4' ])
-    
-    output = [ ]
-    @reference_set.each_aggregate_reference(:foo, asset_aggregator) do |subpath, references|
-      output << [ subpath, references ]
+  context "when computing subpaths" do
+    before :each do
+      @ref_name_number = 0
     end
     
-    output.length.should == 4
-
-    output[0][0].should == 'agg_1'
-    references = output[0][1]
-    references.length.should == 3
-    references[0].reference_source_position.file.should == File.canonical_path('baz')
-    references[1].reference_source_position.file.should == File.canonical_path('hooo')
-    references[2].reference_source_position.file.should == File.canonical_path('baz')
+    def ref(subpaths, aggregate_type = :foo)
+      @ref_name_number += 1
+      out = make_ref(aggregate_type, "fsp_#{@ref_name_number}", "rsp_#{@ref_name_number}", "descrip_#{@ref_name_number}")
+      out.instance_variable_set(:@returned_subpaths, subpaths)
+      
+      class << out
+        def aggregate_subpaths(asset_aggregator)
+          Array(@returned_subpaths)
+        end
+      end
+      
+      out
+    end
     
-    output[1][0].should == 'agg_2'
-    references = output[1][1]
-    references.length.should == 1
-    references[0].reference_source_position.file.should == File.canonical_path('bonk')
+    def check_ref_map(refs, expected_map)
+      Array(refs).each { |r| @reference_set.add(r) }
+      
+      actual_map = { }
+      @reference_set.each_aggregate_reference(:foo, mock(:asset_aggregator)) do |subpath, references|
+        actual_map[subpath] = references
+      end
+      
+      actual_map.keys.sort.should == expected_map.keys.sort
+      actual_map.each do |actual_key, actual_value|
+        expected_value = expected_map[actual_key].sort
+        
+        unless actual_value == expected_value
+          raise "Mismatch: for key #{actual_key}, expected:\n  #{expected_value.join(", ")}\nbut got:\n  #{actual_value.join(", ")}"
+        end
+      end
+    end
     
-    output[2][0].should == 'agg_3'
-    references = output[2][1]
-    references.length.should == 3
-    references[0].reference_source_position.file.should == File.canonical_path('baz')
-    references[1].reference_source_position.file.should == File.canonical_path('baz')
-    references[2].reference_source_position.file.should == File.canonical_path('bonk')
+    it "should compute a single subpath for a single reference" do
+      r1 = ref('aaa')
+      check_ref_map(r1, 'aaa' => [ r1 ])
+    end
     
-    output[3][0].should == 'agg_4'
-    references = output[3][1]
-    references.length.should == 1
-    references[0].reference_source_position.file.should == File.canonical_path('hooo')
+    it "should return the alphabetically-first subpath for a single reference" do
+      r1 = ref(%w{bbb aaa})
+      check_ref_map(r1, 'aaa' => [ r1 ])
+    end
+    
+    it "should return the alphabetically-first subset when they're equivalent" do
+      r1 = ref(%w{bbb aaa ddd})
+      r2 = ref(%w{bbb aaa ccc})
+      
+      check_ref_map([ r1, r2 ], 'aaa' => [ r1, r2 ])
+    end
+    
+    it "should find the smallest subset that covers the references" do
+      # This is set up so that if you grab the biggest, or alphabetically-first,
+      # subset first -- aaa -- you end up with a suboptimal solution
+      # (e.g., aaa ccc bbb, aaa zzz qqq xxx, or something like that).
+      # But bbb ccc covers it all, which is what we need it to find.
+      r1 = ref(%w{aaa bbb ccc})
+      r2 = ref(%w{aaa bbb ddd})
+      r3 = ref(%w{aaa bbb eee})
+      r4 = ref(%w{aaa ccc fff})
+      r5 = ref(%w{aaa ccc ggg})
+      r6 = ref(%w{aaa ccc hhh})
+      r7 = ref(%w{zzz ccc iii})
+      r8 = ref(%w{qqq ccc jjj})
+      r9 = ref(%w{xxx bbb kkk})
+      
+      # Note that r1 is in both sets below, as it should be.
+      check_ref_map([ r1, r2, r3, r4, r5, r6, r7, r8, r9 ],
+        'bbb' => [ r1, r2, r3, r9 ],
+        'ccc' => [ r1, r4, r5, r6, r7, r8 ]
+      )
+    end
   end
   
   it "should return the set of aggregate types correctly" do
