@@ -30,7 +30,10 @@ module AssetAggregator
       
       # Adds the given reference. Duplicate references will be silently ignored.
       def add(reference)
-        @references << reference unless @references.include?(reference)
+        unless @references.include?(reference)
+          @references << reference
+          @subpaths_and_references = nil
+        end
       end
       
       # Returns an array of symbols, which is the set of all distinct aggregate types
@@ -51,40 +54,46 @@ module AssetAggregator
       # Subpaths are always yielded in alphabetical order. This conforms with our
       # guiding principle to always be deterministic about ordering.
       def each_aggregate_reference(aggregate_type_symbol, asset_aggregator, &block)
-        debug "> each_aggregate_reference: computing references for #{aggregate_type_symbol.inspect}"
-        needed_references = @references.select { |r| r.aggregate_type == aggregate_type_symbol }
-        debug "> each_aggregate_reference: computing references for #{aggregate_type_symbol.inspect}: need #{needed_references.length} references"
-        reference_to_subpaths_map = create_reference_to_subpaths_map(needed_references, asset_aggregator)
-        debug "> each_aggregate_reference: reference_to_subpaths_map is of size #{reference_to_subpaths_map.size}"
+        @subpaths_and_references ||= begin
+          debug "> each_aggregate_reference: computing references for #{aggregate_type_symbol.inspect}"
+          needed_references = @references.select { |r| r.aggregate_type == aggregate_type_symbol }
+          debug "> each_aggregate_reference: computing references for #{aggregate_type_symbol.inspect}: need #{needed_references.length} references"
+          reference_to_subpaths_map = create_reference_to_subpaths_map(needed_references, asset_aggregator)
+          debug "> each_aggregate_reference: reference_to_subpaths_map is of size #{reference_to_subpaths_map.size}"
         
-        potential_combinations = [ ]
-        debug "> each_aggregate_reference: calling needed_subpaths..."
-        needed_subpaths(needed_references, reference_to_subpaths_map) { |subpaths| potential_combinations << subpaths.sort }
-        debug "> each_aggregate_reference: got #{potential_combinations.length} potential combinations from needed_subpaths"
-        potential_combinations = potential_combinations.uniq.sort do |one, two|
-          out = one.length <=> two.length
-          out = one <=> two if out == 0
-          out
-        end
-        debug "> each_aggregate_reference: got #{potential_combinations.length} potential combinations from needed_subpaths after unique"
-        
-        debug "Potential combinations of subpaths:"
-        potential_combinations.each_with_index do |c,i|
-          debug "  #{i}: #{c.inspect}"
-        end
-        
-        used_subpaths = potential_combinations[0]
-        
-        subpath_to_reference_map = { }
-        needed_references.each do |reference|
-          subpaths = reference_to_subpaths_map[reference]
-          subpaths.each do |subpath|
-            subpath_to_reference_map[subpath] ||= [ ]
-            subpath_to_reference_map[subpath] << reference
+          potential_combinations = [ ]
+          debug "> each_aggregate_reference: calling needed_subpaths..."
+          needed_subpaths(needed_references, reference_to_subpaths_map) { |subpaths| potential_combinations << subpaths.sort }
+          debug "> each_aggregate_reference: got #{potential_combinations.length} potential combinations from needed_subpaths"
+          potential_combinations = potential_combinations.uniq.sort do |one, two|
+            out = one.length <=> two.length
+            out = one <=> two if out == 0
+            out
           end
+          debug "> each_aggregate_reference: got #{potential_combinations.length} potential combinations from needed_subpaths after unique"
+        
+          debug "Potential combinations of subpaths:"
+          potential_combinations.each_with_index do |c,i|
+            debug "  #{i}: #{c.inspect}"
+          end
+        
+          used_subpaths = potential_combinations[0]
+        
+          subpath_to_reference_map = { }
+          needed_references.each do |reference|
+            subpaths = reference_to_subpaths_map[reference]
+            subpaths.each do |subpath|
+              subpath_to_reference_map[subpath] ||= [ ]
+              subpath_to_reference_map[subpath] << reference
+            end
+          end
+        
+          subpaths_and_references = [ ]
+          used_subpaths.each { |subpath| subpaths_and_references << [ subpath, subpath_to_reference_map[subpath].sort] }
+          subpaths_and_references
         end
         
-        used_subpaths.each { |subpath| block.call(subpath, subpath_to_reference_map[subpath].sort) }
+        subpaths_and_references.each { |(subpath, references)| block.call(subpath, references) }
       end
       
       private

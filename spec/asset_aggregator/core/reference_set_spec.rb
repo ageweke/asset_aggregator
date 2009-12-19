@@ -63,6 +63,14 @@ describe AssetAggregator::Core::ReferenceSet do
       check_ref_map(r1, 'aaa' => [ r1 ])
     end
     
+    it "should not cache references past an addition" do
+      r1 = ref('aaa')
+      check_ref_map(r1, 'aaa' => [ r1 ])
+      
+      r2 = ref('bbb')
+      check_ref_map([ r1, r2 ], 'aaa' => [ r1 ], 'bbb' => [ r2 ])
+    end
+    
     it "should return the alphabetically-first subpath for a single reference" do
       r1 = ref(%w{bbb aaa})
       check_ref_map(r1, 'aaa' => [ r1 ])
