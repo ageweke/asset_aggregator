@@ -58,12 +58,16 @@ module AssetAggregator
           debug "> each_aggregate_reference: computing references for #{aggregate_type_symbol.inspect}"
           needed_references = @references.select { |r| r.aggregate_type == aggregate_type_symbol }
           debug "> each_aggregate_reference: computing references for #{aggregate_type_symbol.inspect}: need #{needed_references.length} references"
+          
           reference_to_subpaths_map = create_reference_to_subpaths_map(needed_references, asset_aggregator)
           debug "> each_aggregate_reference: reference_to_subpaths_map is of size #{reference_to_subpaths_map.size}"
-        
+          
+          subpath_to_references_map = create_subpath_to_references_map(needed_references, reference_to_subpaths_map)
+          debug "> each_aggregate_reference: subpath_to_references_map is of size #{subpath_to_references_map.size}"
+          
           potential_combinations = [ ]
           debug "> each_aggregate_reference: calling needed_subpaths..."
-          needed_subpaths(needed_references, reference_to_subpaths_map) { |subpaths| potential_combinations << subpaths.sort }
+          needed_subpaths(needed_references, reference_to_subpaths_map, subpath_to_references_map) { |subpaths| potential_combinations << subpaths.sort }
           debug "> each_aggregate_reference: got #{potential_combinations.length} potential combinations from needed_subpaths"
           potential_combinations = potential_combinations.uniq.sort do |one, two|
             out = one.length <=> two.length
@@ -78,22 +82,14 @@ module AssetAggregator
           end
         
           used_subpaths = potential_combinations[0]
-        
-          subpath_to_reference_map = { }
-          needed_references.each do |reference|
-            subpaths = reference_to_subpaths_map[reference]
-            subpaths.each do |subpath|
-              subpath_to_reference_map[subpath] ||= [ ]
-              subpath_to_reference_map[subpath] << reference
-            end
-          end
-        
+          
           subpaths_and_references = [ ]
-          used_subpaths.each { |subpath| subpaths_and_references << [ subpath, subpath_to_reference_map[subpath].sort] }
+          used_subpaths.each { |subpath| subpaths_and_references << [ subpath, subpath_to_references_map[subpath].sort] }
           subpaths_and_references
         end
         
-        subpaths_and_references.each { |(subpath, references)| block.call(subpath, references) }
+        @subpaths_and_references.each { |(subpath, references)| block.call(subpath, references) }
+        @subpaths_and_references = nil
       end
       
       private
@@ -109,6 +105,23 @@ module AssetAggregator
         out
       end
       
+      # Given an #Array of reference objects, returns a #Hash that maps each subpath that
+      # covers at least one reference to an #Array of all references that subpath covers.
+      #
+      # This is very close to Hash#invert, but that will randomly select one value to be
+      # used as the key in the case where distinct keys map to the same value. This builds
+      # up an #Array instead, which is what we want.
+      def create_subpath_to_references_map(references, reference_to_subpaths_map)
+        out = { }
+        references.each do |r|
+          reference_to_subpaths_map[r].each do |subpath|
+            out[subpath] ||= [ ]
+            out[subpath] << r
+          end
+        end
+        out
+      end
+      
       # Yields #Array objects. Each #Array is a set of distinct subpaths that will, together,
       # include all fragments required by any reference in +references+ -- in other words, computes all
       # permutations of subpaths that will include all fragments required by the +references+.
@@ -119,12 +132,12 @@ module AssetAggregator
       # +reference_to_subpaths_map+ must be a #Hash that maps each reference to an #Array
       # of subpaths that will each satisfy it. This is passed in because it's fairly expensive
       # to create, and we need it in #each_aggregate_reference, above, too.
-      def needed_subpaths(references, reference_to_subpaths_map, &proc)
+      def needed_subpaths(references, reference_to_subpaths_map, subpath_to_references_map, &proc)
         # Now, split the references into those that point to a single subpath, vs. those that
         # point to multiple subpaths. While not strictly necessary, this tends to make the
         # following algorithm much more efficient, because many references point to a single
         # subpath, and so we *know* we'll need all those subpaths.
-        debug ">> needed_subpaths(#{references.length} references, reference_to_subpaths_map of size #{reference_to_subpaths_map.size}): working..."
+        debug ">> needed_subpaths(#{references.length} references, reference_to_subpaths_map of size #{reference_to_subpaths_map.size}, subpath_to_references_map of size #{subpath_to_references_map.size}): working..."
         (single_subpath_references, multiple_subpath_references) = references.partition { |r| reference_to_subpaths_map[r].length <= 1 }
         debug ">> needed_subpaths: have #{single_subpath_references.length} references to a single subpath, and #{multiple_subpath_references.length} references to multiple subpaths"
         # These are the subpaths we *know* we'll need.
@@ -136,11 +149,16 @@ module AssetAggregator
         needed_references = multiple_subpath_references.select { |r| (reference_to_subpaths_map[r] & required_subpaths).empty? }
         debug ">> needed_subpaths: have #{needed_references.length} references remaining that we need"
         
+        subpath_to_references_map = subpath_to_references_map.reject do |subpath, references|
+          required_subpaths.include?(subpath) || (references & needed_references).empty?
+        end
+        debug ">> needed_subpaths: subpath_to_references_map is now of size #{subpath_to_references_map.size}"
+        
         # Now, call down to our recursive algorithm to go generate potential combinations.
-        best_fit(required_subpaths, needed_references, reference_to_subpaths_map, &proc)
+        best_fit(required_subpaths, needed_references, subpath_to_references_map, subpath_to_references_map.size + 1, &proc)
       end
       
-      # Given a set of subpaths we know we're going to use (+subpaths_so_far+) and a set of
+      # Given a set of subpaths we know we're going to use (+subpaths_so_far+), a set of
       # references that we have yet to satisfy (i.e., none of them are satisfied by any of the
       # subpaths in +subpaths_so_far+), computes the set of all subpaths that each would
       # satisfy at least one of the +needed_references+. For each subpath in that set,
@@ -150,37 +168,75 @@ module AssetAggregator
       # If all references are satisfied -- i.e., +needed_references+ is empty -- then calls
       # the supplied block with the +subpaths_so_far+.
       #
-      # Taken together, this calls the supplied block with every possible combination of
-      # subpaths that will satisfy all the +needed_references+, which is the whole point.
-      def best_fit(subpaths_so_far, needed_references, reference_to_subpaths_map, &proc)
+      # Taken together, this calls the supplied block with various combinations of
+      # subpaths that will satisfy all the +needed_references+, including (guaranteed) the
+      # alphabetically-first set of subpaths that's no bigger than any other set of subpaths
+      # that satisfies all the +needed_references+, which is the whole point.
+      #
+      # Additional parameters: +subpath_to_references_map+ is a #Hash mapping subpaths (strings)
+      # to arrays of references that those subpaths satisfy; +best_so_far+ is an integer
+      # that is the shortest set of subpaths that we've returned yet. We keep this around because
+      # there's no point in even searching more once we hit this number; it makes the
+      # algorithm much, much faster.
+      def best_fit(subpaths_so_far, needed_references, subpath_to_references_map, best_so_far, &proc)
         debug ">>> best_fit(subpaths #{subpaths_so_far.inspect}, #{needed_references.length} remaining references needed)"
         if needed_references.empty?
           debug ">>> best_fit: no more references needed, calling block with: #{subpaths_so_far.join(", ")}"
           proc.call(subpaths_so_far)
+          best_so_far = [ subpaths_so_far.length, best_so_far ].min
         else
-          # Construct a map of subpath -> references for the remaining references we have...
-          subpath_to_reference_map = { }
-          needed_references.each do |needed_reference|
-            reference_to_subpaths_map[needed_reference].each do |subpath|
-              subpath_to_reference_map[subpath] ||= [ ]
-              subpath_to_reference_map[subpath] << needed_reference
-            end
-          end
+          return best_so_far if subpaths_so_far.length >= best_so_far
 
-          debug ">>> best_fit: subpath_to_reference_map has #{subpath_to_reference_map.size} entries; subpaths: #{subpath_to_reference_map.keys.join(", ")}"
-          # Now, go through it and pick each subpath in turn, recursing...
-          subpath_to_reference_map.each do |subpath, references_covered|
-            # BUT: only pick subpaths alphabetically greater than all the subpaths we've tried
+          # Now, go through it and pick each subpath in turn, recursing. We do this in
+          # descending order of size, since, while not guaranteed, large sets are more
+          # likely to be included in the optimal result than small sets. This doesn't
+          # affect the final result, but helps us run faster.
+          #
+          # We sort alphabetically within subpaths of the same size, so that we will
+          # end up returning the alphabetically-first set of subpaths that covers all
+          # the needed references, if multiple sets of the same length both cover it.
+          remaining_subpaths_in_order = (subpath_to_references_map.keys - subpaths_so_far).sort do |a, b|
+            out = (b.length <=> a.length)
+            out = (a <=> b) if out == 0
+            out
+          end
+          
+          remaining_subpaths_in_order.each do |subpath|
+            # Only pick subpaths alphabetically greater than all the subpaths we've tried
             # so far. In other words, only try (aaa, bbb), not also (bbb, aaa). This makes
             # the algorithm hugely faster; we're trying distinct combinations of subsets, not
             # all permutations. All permutations is exponential and makes this run forever
             # very, very fast.
             unless subpaths_so_far.detect { |s| s > subpath }
-              debug ">>> best_fit: subpath #{subpath} covers #{references_covered.length} references; recursing..."
-              best_fit(subpaths_so_far | [ subpath ], needed_references - references_covered, reference_to_subpaths_map, &proc)
+              # Compute the set of new subpaths we'll try, and the references that will be
+              # remaining.
+              new_subpaths = subpaths_so_far + [ subpath ]
+              remaining_references = needed_references - subpath_to_references_map[subpath]
+              if remaining_references.empty?
+                # No references remain; we've covered them all. Output the result.
+                proc.call(new_subpaths)
+                
+                # If we've got a new best match, don't even bother trying the other subpaths.
+                # Since we add one new subpath on each recursive call to #best_fit, the other
+                # subpaths can't possibly do any *better* than what we've found, and since
+                # we try paths in alphabetical order, we want to yield only the very first
+                # path that we try.
+                return new_subpaths.length if new_subpaths.length < best_so_far
+              else
+                result = best_fit(
+                  new_subpaths,
+                  remaining_references,
+                  subpath_to_references_map,
+                  best_so_far,
+                  &proc)
+
+                best_so_far = [ best_so_far, result ].min
+              end
             end
           end
         end
+        
+        best_so_far
       end
     end
   end

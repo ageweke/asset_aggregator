@@ -83,26 +83,43 @@ describe AssetAggregator::Core::ReferenceSet do
       check_ref_map([ r1, r2 ], 'aaa' => [ r1, r2 ])
     end
     
-    it "should find the smallest subset that covers the references" do
-      # This is set up so that if you grab the biggest, or alphabetically-first,
-      # subset first -- aaa -- you end up with a suboptimal solution
-      # (e.g., aaa ccc bbb, aaa zzz qqq xxx, or something like that).
-      # But bbb ccc covers it all, which is what we need it to find.
-      r1 = ref(%w{aaa bbb ccc})
-      r2 = ref(%w{aaa bbb ddd})
-      r3 = ref(%w{aaa bbb eee})
-      r4 = ref(%w{aaa ccc fff})
-      r5 = ref(%w{aaa ccc ggg})
-      r6 = ref(%w{aaa ccc hhh})
-      r7 = ref(%w{zzz ccc iii})
-      r8 = ref(%w{qqq ccc jjj})
-      r9 = ref(%w{xxx bbb kkk})
+    context "with a bunch of references" do
+      before :each do
+        # This is set up so that if you grab the biggest, or alphabetically-first,
+        # subset first -- aaa -- you end up with a suboptimal solution
+        # (e.g., aaa ccc bbb, aaa zzz qqq xxx, or something like that).
+        # But bbb ccc covers it all, which is what we need it to find.
+        @r1 = ref(%w{aaa bbb ccc})
+        @r2 = ref(%w{aaa bbb ddd})
+        @r3 = ref(%w{aaa bbb eee})
+        @r4 = ref(%w{aaa ccc fff})
+        @r5 = ref(%w{aaa ccc ggg})
+        @r6 = ref(%w{aaa ccc hhh})
+        @r7 = ref(%w{zzz ccc iii})
+        @r8 = ref(%w{qqq ccc jjj})
+        @r9 = ref(%w{xxx bbb kkk})
+      end
       
-      # Note that r1 is in both sets below, as it should be.
-      check_ref_map([ r1, r2, r3, r4, r5, r6, r7, r8, r9 ],
-        'bbb' => [ r1, r2, r3, r9 ],
-        'ccc' => [ r1, r4, r5, r6, r7, r8 ]
-      )
+      it "should find the smallest subset that covers the references" do
+        # Note that @r1 is in both sets below, as it should be.
+        check_ref_map([ @r1, @r2, @r3, @r4, @r5, @r6, @r7, @r8, @r9 ],
+          'bbb' => [ @r1, @r2, @r3, @r9 ],
+          'ccc' => [ @r1, @r4, @r5, @r6, @r7, @r8 ]
+        )
+      end
+      
+      it "should compute relatively quickly" do
+        require 'ruby-prof'
+        [ @r1, @r2, @r3, @r4, @r5, @r6, @r7, @r8, @r9 ].each { |r| @reference_set.add(r) }
+        
+        start_time = Time.now
+        150.times do
+          @reference_set.each_aggregate_reference(:foo, mock(:asset_aggregator)) { |subpath, references| }
+        end
+        end_time = Time.now
+        
+        (end_time - start_time).should < 1
+      end
     end
   end
   
