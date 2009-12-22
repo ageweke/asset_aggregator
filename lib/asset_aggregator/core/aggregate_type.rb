@@ -145,6 +145,18 @@ module AssetAggregator
         subpaths.sort
       end
       
+      # Just like #filter_with, but only applies the filters if the given condition
+      # is true. Syntactic sugar so you can write:
+      #   filter_with_if(Rails.env.production?, :jsmin)
+      # ...or whatever
+      def filter_with_if(condition, filter_name, *args, &proc)
+        if condition
+          filter_with(filter_name, *args, &proc)
+        else
+          proc.call
+        end
+      end
+      
       # Applies a filter to any #Aggregator objects added during its execution -- this
       # method takes a block.. The filter is specified by +filter_name+, which can
       # be a String or Symbol, in which case we use the class

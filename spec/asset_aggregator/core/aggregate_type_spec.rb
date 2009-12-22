@@ -70,6 +70,26 @@ describe AssetAggregator::Core::AggregateType do
     aggregator.instance_variable_get(:@aggregate_type).should == type_with_predefined
   end
   
+  it "should add filters on #filter_if, but only if requested" do
+    filter1 = mock(:filter1, :filter => nil)
+    filter2 = mock(:filter2, :filter => nil)
+    
+    definition_proc = Proc.new do
+      filter_with_if true, filter1 do
+        filter_with_if false, filter2 do
+          add TestAggregatorClass, :foo
+        end
+      end
+    end
+    
+    type_with_filters = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_class, definition_proc)
+    aggregators = type_with_filters.instance_variable_get(:@aggregators)
+    aggregators.length.should == 1
+    
+    aggregators[0].name.should == :foo
+    aggregators[0].filters.should == [ filter1 ]
+  end
+  
   it "should add filters to its aggregators, in order" do
     filter1 = mock(:filter1, :filter => nil)
     filter2 = mock(:filter2, :filter => nil)
