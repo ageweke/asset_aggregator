@@ -192,7 +192,8 @@ module AssetAggregator
 
     def set_aggregate_type(type, output_handler, definition_proc)
       output_handler_class ||= "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
-      @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_class, definition_proc)
+      output_handler_creator = Proc.new { |*args| output_handler_class.new(*args) }
+      @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_creator, definition_proc)
     end
     
     def aggregated_subpaths_for(type, fragment_source_position)

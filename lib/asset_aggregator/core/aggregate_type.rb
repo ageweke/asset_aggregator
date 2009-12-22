@@ -17,10 +17,10 @@ module AssetAggregator
       # can read. +definition_proc+ gets run in the context of this object; it is
       # what calls some combination of #add and #filter_with so that the right
       # #Aggregator objects get added to this type.
-      def initialize(type, file_cache, output_handler_class, definition_proc)
+      def initialize(type, file_cache, output_handler_creator, definition_proc)
         @type = type
         @file_cache = file_cache
-        @output_handler_class = output_handler_class
+        @output_handler_creator = output_handler_creator
         @aggregators = [ ]
         
         instance_eval(&definition_proc)
@@ -52,7 +52,7 @@ module AssetAggregator
         end
         
         if fragment
-          output_handler = @output_handler_class.new(self, fragment.source_position.terse_file)
+          output_handler = @output_handler_creator.call(self, fragment.source_position.terse_file)
           output_handler.start_all
           output_handler.start_aggregator(aggregator)
           output_handler.start_fragment(aggregator, fragment)
@@ -79,7 +79,7 @@ module AssetAggregator
       def content_for(subpath)
         found_content = false
         
-        output_handler = @output_handler_class.new(self, subpath)
+        output_handler = @output_handler_creator.call(self, subpath)
         
         output_handler.start_all
         @aggregators.each_with_index do |aggregator, index|

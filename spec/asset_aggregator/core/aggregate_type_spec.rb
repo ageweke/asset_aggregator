@@ -20,14 +20,14 @@ describe AssetAggregator::Core::AggregateType do
   before :each do
     @type = 'foobar'
     @file_cache = mock(:file_cache)
-    @output_handler_class = mock(:output_handler_class)
+    @output_handler_creator = mock(:output_handler_creator)
     
     definition_proc = Proc.new do
       add TestAggregatorClass, :foo
       add TestAggregatorClass, :bar, :baz
     end
     
-    @aggregate_type = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_class, definition_proc)
+    @aggregate_type = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
   end
   
   it "should return its components correctly" do
@@ -59,7 +59,7 @@ describe AssetAggregator::Core::AggregateType do
     definition_proc = Proc.new do
       add :files, 'bonk'
     end
-    type_with_predefined = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_class, definition_proc)
+    type_with_predefined = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
     
     aggregators = type_with_predefined.instance_variable_get(:@aggregators)
     aggregators.length.should == 1
@@ -82,7 +82,7 @@ describe AssetAggregator::Core::AggregateType do
       end
     end
     
-    type_with_filters = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_class, definition_proc)
+    type_with_filters = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
     aggregators = type_with_filters.instance_variable_get(:@aggregators)
     aggregators.length.should == 1
     
@@ -106,7 +106,7 @@ describe AssetAggregator::Core::AggregateType do
       add TestAggregatorClass, :marph
     end
     
-    type_with_filters = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_class, definition_proc)
+    type_with_filters = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
     aggregators = type_with_filters.instance_variable_get(:@aggregators)
     aggregators.length.should == 5
     
@@ -196,7 +196,7 @@ describe AssetAggregator::Core::AggregateType do
     
 
     output_handler = mock(:output_handler)
-    @output_handler_class.should_receive(:new).with(@aggregate_type, subpath).and_return(output_handler)
+    @output_handler_creator.should_receive(:call).with(@aggregate_type, subpath).and_return(output_handler)
     
     output_handler.should_receive(:start_all).ordered
     
@@ -232,7 +232,7 @@ describe AssetAggregator::Core::AggregateType do
     subpath = 'bonk/whatever'
     
     output_handler = mock(:output_handler)
-    @output_handler_class.should_receive(:new).with(@aggregate_type, subpath).and_return(output_handler)
+    @output_handler_creator.should_receive(:call).with(@aggregate_type, subpath).and_return(output_handler)
     
     output_handler.should_receive(:start_all).ordered
     output_handler.should_receive(:start_aggregator).with(aggregator1).ordered
@@ -260,7 +260,7 @@ describe AssetAggregator::Core::AggregateType do
     aggregator1.should_receive(:fragment_for).once.with(source_position).and_return(fragment)
 
     output_handler = mock(:output_handler)
-    @output_handler_class.should_receive(:new).with(@aggregate_type, source_position.terse_file).and_return(output_handler)
+    @output_handler_creator.should_receive(:call).with(@aggregate_type, source_position.terse_file).and_return(output_handler)
     
     output_handler.should_receive(:start_all).ordered
     
