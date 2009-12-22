@@ -11,9 +11,10 @@ module AssetAggregator
       # (with +Rails.root+ stripped off, if present) of a #Fragment, in the case
       # where we're outputting a single fragment (used in development mode when
       # requested).
-      def initialize(aggregate_type, subpath)
+      def initialize(aggregate_type, subpath, options)
         @aggregate_type = aggregate_type
         @subpath = subpath
+        @options = options
         
         @out = StringIO.new
       end
@@ -60,7 +61,7 @@ module AssetAggregator
       # Called to separate two #Aggregator objects, when multiple #Aggreagtor objects
       # are being output for the same subpath for the same #AggregateType.
       def separate_aggregators(last_aggregator, aggregator)
-        # nothing here
+        output "\n\n"
       end
       
       # Called once, at the very end of output.
@@ -75,7 +76,7 @@ module AssetAggregator
       end
       
       private
-      attr_reader :aggregate_type, :subpath
+      attr_reader :aggregate_type, :subpath, :options
       
       # Outputs the given string to the in-memory #StringIO object that we're
       # building up, using the same semantics as #puts.

@@ -147,8 +147,8 @@ module AssetAggregator
       @standard_instance ||= Impl.new
     end
     
-    def aggregate(type, output_handler = nil, &definition_proc)
-      standard_instance.set_aggregate_type(type, output_handler, definition_proc)
+    def aggregate(type, output_handler_creator = nil, &definition_proc)
+      standard_instance.set_aggregate_type(type, output_handler_creator, definition_proc)
     end
     
     def aggregated_subpaths_for(type, fragment_source_position)
@@ -188,11 +188,33 @@ module AssetAggregator
     def initialize
       @aggregate_types = { }
       @file_cache = AssetAggregator::Core::FileCache.new
+      
+      if ::Rails.env.development?
+        @output_options = {
+          :header_comment     => :full,
+          :aggregator_comment => :full,
+          :fragment_comment   => :full
+        }
+      else
+        @output_options = {
+          :header_comment     => :none,
+          :aggregator_comment => :brief,
+          :fragment_comment   => :brief
+        }
+      end
+    end
+    
+    def output_options=(options)
+      @output_options = options
     end
 
-    def set_aggregate_type(type, output_handler, definition_proc)
-      output_handler_class ||= "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
-      output_handler_creator = Proc.new { |*args| output_handler_class.new(*args) }
+    def set_aggregate_type(type, output_handler_creator, definition_proc)
+      output_handler_creator = Proc.new do |*args|
+        output_handler_class = "AssetAggregator::OutputHandlers::#{type.to_s.camelize}OutputHandler".constantize
+        args << @output_options
+        output_handler_class.new(*args)
+      end
+      
       @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_creator, definition_proc)
     end
     
