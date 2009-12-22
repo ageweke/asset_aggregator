@@ -86,6 +86,17 @@ describe AssetAggregator::Core::FragmentSet do
     @fragment_set.aggregated_subpaths_for(AssetAggregator::Core::SourcePosition.new("foo", 12)).should == [ "bar/baz" ]
   end
   
+  it "should #remove_all correctly" do
+    fragment_2 = make('bar/baz', 'baz', 34, 'bonko')
+    fragment_3 = make('foo/bar', 'baz', 72, 'honk')
+    
+    [ @fragment_1, fragment_2, fragment_3 ].each { |f| @fragment_set.add(f) }
+    
+    @fragment_set.remove_all!
+    all_fragments_object_ids('foo/bar').should be_empty
+    all_fragments_object_ids('bar/baz').should be_empty
+  end
+  
   it "should #remove_all_for_file correctly" do
     fragment_2 = make('bar/baz', 'baz', 34, 'bonko')
     fragment_3 = make('foo/bar', 'baz', 72, 'honk')
@@ -106,7 +117,29 @@ describe AssetAggregator::Core::FragmentSet do
       make('zzz/aaa', 'qqq', 945, 'zz')
     ]
     
+    shuffled = fragments.shuffle
+    shuffled.each { |f| @fragment_set.add(f) }
+    shuffled_fragments = shuffled.select { |f| fragments[0..2].include?(f) }
+    
+    sorting_proc = mock(:sorting_proc)
+    sorting_proc.should_receive(:call).once.with(shuffled_fragments).and_return([ fragments[1], fragments[2], fragments[0] ])
+    
+    out = [ ]
+    @fragment_set.each_fragment_for('aaa/bbb', sorting_proc) { |f| out << f.object_id }
+    out.should == [ fragments[1].object_id, fragments[2].object_id, fragments[0].object_id ]
+  end
+  
+  it "should pass the correct fragments into the sorting proc on #each_fragment_for, and yield them in whatever order it returns them in" do
+    fragments = [
+      make('aaa/bbb', 'mmm', 123, 'yo'),
+      make('aaa/bbb', 'mmm', 456, 'yo'),
+      make('aaa/bbb', 'zzz', 1,   'yo'),
+      make('foo/bar', 'bbb', 234, 'hi'),
+      make('zzz/aaa', 'qqq', 945, 'zz')
+    ]
+    
     fragments.shuffle.each { |f| @fragment_set.add(f) }
+    
     all_fragments_object_ids('aaa/bbb').should == fragments[0..2].map { |f| f.object_id }
   end
   

@@ -27,6 +27,14 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.instance_variable_set(:@test_fragment_set, @test_fragment_set)
   end
   
+  it "should return its components correctly" do
+    @aggregator.send(:fragment_set).should == @test_fragment_set
+    @aggregator.send(:aggregate_type).should == @aggregate_type
+    
+    @aggregate_type.should_receive(:type).and_return(:foobar)
+    @aggregator.send(:aggregate_type_symbol).should == :foobar
+  end
+  
   it "should populate the filters correctly in its fragment set" do
     @aggregator = AssetAggregator::Core::Aggregator.new(@aggregate_type, @file_cache, @filters)
     @aggregator.instance_variable_get(:@fragment_set).instance_variable_get(:@filters).should == @filters
@@ -93,7 +101,20 @@ describe AssetAggregator::Core::Aggregator do
   it "should call through to the fragment set on #each_fragment_for" do
     subpath = 'foo/bar'
     fragments = [ mock(:fragment1), mock(:fragment2) ]
-    @test_fragment_set.should_receive(:each_fragment_for).once.with(subpath).and_yield(fragments[0]).and_yield(fragments[1])
+    @test_fragment_set.should_receive(:each_fragment_for).once.with(subpath, nil).and_yield(fragments[0]).and_yield(fragments[1])
+    actual_fragments = [ ]
+    @aggregator.each_fragment_for(subpath) { |f| actual_fragments << f }
+    actual_fragments.should == fragments
+    @aggregator.refresh_fragments_since_calls.should == [ nil ]
+  end
+  
+  it "should pass its #fragment_sorting_proc through on #each_fragment_for" do
+    subpath = 'foo/bar'
+    sorting_proc = mock(:sorting_proc)
+    @aggregator.should_receive(:fragment_sorting_proc).once.with(subpath).and_return(sorting_proc)
+    
+    fragments = [ mock(:fragment1), mock(:fragment2) ]
+    @test_fragment_set.should_receive(:each_fragment_for).once.with(subpath, sorting_proc).and_yield(fragments[0]).and_yield(fragments[1])
     actual_fragments = [ ]
     @aggregator.each_fragment_for(subpath) { |f| actual_fragments << f }
     actual_fragments.should == fragments

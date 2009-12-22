@@ -28,6 +28,10 @@ module AssetAggregator
         @reference_set.add(AssetAggregator::Core::AggregateReference.new(aggregate_type, aggregate_subpath, source_position, descrip || "#require_aggregate call"))
       end
       
+      def each_aggregate_reference(type_symbol, &block)
+        AssetAggregator.each_aggregate_reference_in_set(@reference_set, type_symbol, &block)
+      end
+      
       def include_text(object_to_call_helper_methods_on, options = { })
         output_handler_class = options[:output_handler_class] || AssetAggregator::Rails::PageReferencesOutputHandler
         output_handler = output_handler_class.new(AssetAggregator.standard_instance, object_to_call_helper_methods_on, options)

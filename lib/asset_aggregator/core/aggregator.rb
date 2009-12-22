@@ -63,7 +63,11 @@ module AssetAggregator
       # in turn, in order.
       def each_fragment_for(subpath, &proc)
         ensure_loaded!
-        fragment_set.each_fragment_for(subpath, &proc)
+        fragment_set.each_fragment_for(subpath, fragment_sorting_proc(subpath), &proc)
+      end
+      
+      def fragment_sorting_proc(subpath)
+        nil
       end
       
       # Given the #SourcePosition of a #Fragment, returns an #Array of all
@@ -76,7 +80,13 @@ module AssetAggregator
       end
       
       private
-      attr_reader :fragment_set
+      attr_reader :fragment_set, :aggregate_type
+      
+      # Returns the symbol associated with the #AggregateType, like :javascript
+      # or :css.
+      def aggregate_type_symbol
+        aggregate_type.type
+      end
       
       # Must make sure +fragment_set+ contains all up-to-date fragments;
       # +last_refresh_fragments_since_time+ is the last time this was run (will be

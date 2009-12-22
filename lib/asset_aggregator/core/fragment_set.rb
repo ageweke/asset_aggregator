@@ -14,10 +14,9 @@ module AssetAggregator
     class FragmentSet
       # Creates a new instance, with the given (possibly empty) array of #Filter objects.
       def initialize(filters)
-        @fragments = [ ]
         @filters = filters
-        @filtered_fragments = { }
         @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
+        remove_all!
       end
       
       # Given a #SourcePosition, returns the #Fragment that has that #SourcePosition,
@@ -46,6 +45,12 @@ module AssetAggregator
         out
       end
       
+      # Removes all #Fragment objects entirely.
+      def remove_all!
+        @fragments = [ ]
+        @filtered_fragments = { }
+      end
+      
       # Returns the set of all distinct subpaths that any #Fragment in this set has.
       def all_subpaths
         @fragments.inject([ ]) { |out,f| out | f.target_subpaths }.uniq.sort
@@ -67,10 +72,13 @@ module AssetAggregator
         remove { |f| f.source_position.file == file }
       end
       
-      # Yields each #Fragment that specifies +subpath+ as one of its given +target_subpaths+,
-      # in sorted order (by #SourcePosition).
-      def each_fragment_for(subpath, &proc)
-        @fragments.select { |f| f.target_subpaths.include?(subpath) }.sort.each(&proc)
+      # Yields each #Fragment that specifies +subpath+ as one of its given +target_subpaths+.
+      # Yielded in sorted order (by #SourcePosition) by default, but if +sorting_proc+
+      # is specified, then fragments are passed into that object (via #call)
+      # and will be yielded in whatever order it returns them.
+      def each_fragment_for(subpath, sorting_proc = nil, &proc)
+        sorting_proc ||= Proc.new { |fragments| fragments.sort }
+        sorting_proc.call(@fragments.select { |f| f.target_subpaths.include?(subpath) }).each(&proc)
       end
       
       # Given a #Fragment, returns its content as filtered through the +filters+

@@ -20,6 +20,15 @@ module AssetAggregator
     # require an aggregate rather than a single fragment. This couples code with
     # knowledge of what fragments are ending up in what aggregates, and so is 
     # generally a bad idea, but it's there if you need it.
+    #
+    #
+    # PERFORMANCE
+    # ===========
+    # This class needs to be fast -- in particular, #each_aggregate_reference needs
+    # to run fast, because it is called from the #PageReferenceSet and can thus be
+    # invoked from every single page in a Rails application. 
+    #
+    # The spec for this class tests as much. Be careful.
     class ReferenceSet
       DEBUG = false # for debugging the #best_fit algorithm
       

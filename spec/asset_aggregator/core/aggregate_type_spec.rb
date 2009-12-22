@@ -30,6 +30,10 @@ describe AssetAggregator::Core::AggregateType do
     @aggregate_type = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_class, definition_proc)
   end
   
+  it "should return its components correctly" do
+    @aggregate_type.type.should == @type
+  end
+  
   it "should add the right aggregators" do
     aggregators = @aggregate_type.instance_variable_get(:@aggregators)
     aggregators.length.should == 2

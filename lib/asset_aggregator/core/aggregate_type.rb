@@ -1,6 +1,8 @@
 module AssetAggregator
   module Core
     class AggregateType
+      attr_reader :type
+      
       # An AggregateType represents the aggregation of a particular type of asset --
       # e.g., :javascript or :css -- which is the +type+ parameter. You can actually
       # supply whatever type you want; it is used simply as a top-level parameter
