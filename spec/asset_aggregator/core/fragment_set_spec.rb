@@ -7,7 +7,7 @@ describe AssetAggregator::Core::FragmentSet do
     @filters = [ @filter1, @filter2 ]
     
     @source_position_1 = AssetAggregator::Core::SourcePosition.new('foo', 12)
-    @fragment_1 = AssetAggregator::Core::Fragment.new('bar/baz', @source_position_1, 'some content here')
+    @fragment_1 = AssetAggregator::Core::Fragment.new('bar/baz', @source_position_1, 'some content here', Time.now)
     
     @fragment_set = AssetAggregator::Core::FragmentSet.new(@filters)
   end
@@ -22,8 +22,8 @@ describe AssetAggregator::Core::FragmentSet do
     all_fragments(subpath).map { |f| f.object_id }
   end
   
-  def make(subpath, file, line, content)
-    AssetAggregator::Core::Fragment.new(subpath, AssetAggregator::Core::SourcePosition.new(file, line), content)
+  def make(subpath, file, line, content, mtime = Time.now)
+    AssetAggregator::Core::Fragment.new(subpath, AssetAggregator::Core::SourcePosition.new(file, line), content, mtime)
   end
   
   it "should replace fragments on #add" do

@@ -10,6 +10,7 @@ module AssetAggregator
       @directories = [ ]
       @content = { }
       @do_not_exist = [ ]
+      @default_mtime = Time.now.to_i
       
       clear_calls!
     end
@@ -17,10 +18,14 @@ module AssetAggregator
     def set_mtime(path, mtime)
       @mtime_returns[path] = mtime
     end
+    
+    def set_default_mtime(mtime)
+      @default_mtime = mtime
+    end
   
     def mtime(path)
       @mtime_calls << path
-      @mtime_returns[path] || raise("No test mtime specified for '#{path}'")
+      @mtime_returns[path] || @default_mtime || raise("No test mtime specified for '#{path}'")
     end
   
     def set_find_yields(returns)

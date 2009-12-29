@@ -19,7 +19,7 @@ module AssetAggregator
     class Fragment
       include Comparable
       
-      attr_reader :target_subpaths, :source_position, :content
+      attr_reader :target_subpaths, :source_position, :content, :mtime
       
       # Creates a new instance. +target_subpaths+ are the target subpaths that this
       # #Fragment should end up at, without the extension or URL prefix (e.g.,
@@ -27,11 +27,14 @@ module AssetAggregator
       # +http://myhost/javascripts/aggregated/foo/bar/baz.js+). +source_position+
       # is a #SourcePosition instance, representing the file this #Fragment came
       # from (or file and line, if it's not the entire file); +content+ is the actual
-      # content of the data, byte-for-byte verbatim.
-      def initialize(target_subpaths, source_position, content)
+      # content of the data, byte-for-byte verbatim; +mtime+ is a #Time object or
+      # integer (in Time#to_i format) representing when the content was last
+      # modified. We use this to generate cache-busting URLs.
+      def initialize(target_subpaths, source_position, content, mtime)
         @target_subpaths = Array(target_subpaths)
         @source_position = source_position
         @content = content
+        @mtime = mtime.to_i
       end
       
       # Returns a hash code for this #Fragment; as stated in the class comment, this 

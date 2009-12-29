@@ -22,7 +22,6 @@ module AssetAggregator
         end
         
         def rendering_template(view, template)
-          $stderr.puts "\n\n\n\n\n********** RENDERING: #{template}\n\n\n\n\n\n"
           @on_view_proc.call(view, template) if @on_view_proc
         end
         

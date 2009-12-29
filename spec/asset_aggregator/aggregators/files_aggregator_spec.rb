@@ -33,6 +33,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       actual_fragment.source_position.file.should == expected_fragment[:file]
       actual_fragment.source_position.line.should == expected_fragment[:line]
       actual_fragment.content.should == expected_fragment[:content]
+      actual_fragment.mtime.should == expected_fragment[:mtime] if expected_fragment[:mtime]
     end
   end
   
@@ -40,10 +41,12 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     path = File.join(@root, 'foo', 'bar.css')
     @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path ])
     @filesystem_impl.set_content(path, 'hidey ho')
+    mtime = 1262120245
+    @filesystem_impl.set_mtime(path, mtime)
     
     aggregator = make(@root)
     check_fragments(aggregator, 'foo', [
-      { :target_subpaths => [ 'foo' ], :file => path, :line => nil, :content => 'hidey ho' }
+      { :target_subpaths => [ 'foo' ], :file => path, :line => nil, :content => 'hidey ho', :mtime => mtime }
     ])
     
     check_fragments(aggregator, 'bar', [ ])
@@ -81,21 +84,27 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       @path1 = File.join(@root, 'foo', 'bar.one')
       @path2 = File.join(@root, 'foo', 'baz.two')
       @path3 = File.join(@root, 'quux', 'marph.three')
+      @mtime1 = 1262120245
+      @mtime2 = 1262120248
+      @mtime3 = 1262120267
       @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ @path1, @path2, @path3 ])
       @filesystem_impl.set_content(@path1, 'path1 content')
       @filesystem_impl.set_content(@path2, 'path2 content')
       @filesystem_impl.set_content(@path3, 'path3 content')
+      @filesystem_impl.set_mtime(@path1, @mtime1)
+      @filesystem_impl.set_mtime(@path2, @mtime2)
+      @filesystem_impl.set_mtime(@path3, @mtime3)
       
       @aggregator = make(@root)
     end
 
     it "should return multiple files' fragments" do
       check_fragments(@aggregator, 'foo', [
-        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content' },
-        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => 'path2 content' }
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content', :mtime => @mtime1 },
+        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => 'path2 content', :mtime => @mtime2 }
       ])
       check_fragments(@aggregator, 'quux', [
-        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content', :mtime => @mtime3 }
       ])
     end
   

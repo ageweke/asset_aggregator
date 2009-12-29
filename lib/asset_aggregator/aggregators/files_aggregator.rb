@@ -78,7 +78,7 @@ module AssetAggregator
             target_subpaths = Array(@subpath_definition_proc.call(changed_file, content))
             target_subpaths = update_with_tagged_subpaths(changed_file, content, target_subpaths)
             
-            fragment_set.add(AssetAggregator::Core::Fragment.new(target_subpaths, AssetAggregator::Core::SourcePosition.new(changed_file, nil), content))
+            fragment_set.add(AssetAggregator::Core::Fragment.new(target_subpaths, AssetAggregator::Core::SourcePosition.new(changed_file, nil), content, @filesystem_impl.mtime(changed_file)))
           end
         end
       end

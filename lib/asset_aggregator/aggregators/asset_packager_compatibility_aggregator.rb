@@ -43,7 +43,7 @@ module AssetAggregator
         @fragment_source_file_to_subpaths_map.each do |fragment_source_file, subpaths|
           fragment_set.remove_all_for_file(fragment_source_file) unless complete_refresh
           if File.exist?(fragment_source_file)
-            fragment_set.add(AssetAggregator::Core::Fragment.new(subpaths, AssetAggregator::Core::SourcePosition.new(fragment_source_file, nil), File.read(fragment_source_file)))
+            fragment_set.add(AssetAggregator::Core::Fragment.new(subpaths, AssetAggregator::Core::SourcePosition.new(fragment_source_file, nil), File.read(fragment_source_file), File.mtime(fragment_source_file)))
           end
         end
       end
