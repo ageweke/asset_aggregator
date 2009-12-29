@@ -155,6 +155,33 @@ describe AssetAggregator::Core::AggregateType do
     @aggregate_type.fragment_for(source_position).should == fragment
   end
   
+  context "when calculating #mtime_for" do
+    it "should return the max" do
+      mtime = Time.now.to_i
+    
+      aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+      aggregators[0].should_receive(:max_mtime_for).once.with('foo/bar').and_return(mtime + 1000)
+      aggregators[1].should_receive(:max_mtime_for).once.with('foo/bar').and_return(mtime)
+      @aggregate_type.max_mtime_for('foo/bar').should == mtime + 1000
+    end
+    
+    it "should skip aggregators that have no mtime for the given subpath" do
+      mtime = Time.now.to_i
+    
+      aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+      aggregators[0].should_receive(:max_mtime_for).once.with('foo/bar').and_return(nil)
+      aggregators[1].should_receive(:max_mtime_for).once.with('foo/bar').and_return(mtime - 1000)
+      @aggregate_type.max_mtime_for('foo/bar').should == mtime - 1000
+    end
+    
+    it "should return nil if there is no data at all" do
+      aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+      aggregators[0].should_receive(:max_mtime_for).once.with('foo/bar').and_return(nil)
+      aggregators[1].should_receive(:max_mtime_for).once.with('foo/bar').and_return(nil)
+      @aggregate_type.max_mtime_for('foo/bar').should be_nil
+    end
+  end
+  
   it "should return the sorted union of aggregators' #aggregated_subpaths_for for its own #aggregated_subpaths_for" do
     aggregators = @aggregate_type.instance_variable_get(:@aggregators)
 

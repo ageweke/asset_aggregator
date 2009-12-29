@@ -145,6 +145,13 @@ module AssetAggregator
         subpaths.sort
       end
       
+      # Returns the max mtime for any #Aggregator that has content for the given
+      # +subpath+. Returns +nil+ if no aggregators have any content at all for the
+      # given +subpath+.
+      def max_mtime_for(subpath)
+        @aggregators.map { |a| a.max_mtime_for(subpath) }.compact.max
+      end
+      
       # Just like #filter_with, but only applies the filters if the given condition
       # is true. Syntactic sugar so you can write:
       #   filter_with_if(Rails.env.production?, :jsmin)

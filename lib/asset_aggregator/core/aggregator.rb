@@ -22,6 +22,13 @@ module AssetAggregator
         @aggregate_type = aggregate_type
       end
       
+      # Returns the maximum modification time (as an integer, in Time#to_i
+      # format) for any of the fragments in this #Aggregator that map to the
+      # given +subpath+. Used to generate cache-busting URLs.
+      def max_mtime_for(subpath)
+        fragment_set.max_mtime_for(subpath)
+      end
+      
       # Given a #SourcePosition, returns the #Fragment with that
       # #SourcePosition, if any.
       def fragment_for(fragment_source_position)

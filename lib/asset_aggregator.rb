@@ -251,10 +251,22 @@ module AssetAggregator
       aggregate_type(type).content_for(subpath)
     end
     
+    def mtime_for(type, subpath)
+      aggregate_type(type).max_mtime_for(subpath)
+    end
+    
     def all_subpaths(type)
       out = [ ]
       type = @aggregate_types[type]
       out = type.all_subpaths if type
+      out
+    end
+    
+    def fragment_mtime_for(type, fragment_source_position)
+      out = nil
+      type = @aggregate_types[type]
+      fragment = type.fragment_for(fragment_source_position) if type
+      out = fragment.mtime if fragment
       out
     end
     

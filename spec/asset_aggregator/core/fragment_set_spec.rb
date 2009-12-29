@@ -7,7 +7,8 @@ describe AssetAggregator::Core::FragmentSet do
     @filters = [ @filter1, @filter2 ]
     
     @source_position_1 = AssetAggregator::Core::SourcePosition.new('foo', 12)
-    @fragment_1 = AssetAggregator::Core::Fragment.new('bar/baz', @source_position_1, 'some content here', Time.now)
+    @fragment_1_mtime = Time.now.to_i
+    @fragment_1 = AssetAggregator::Core::Fragment.new('bar/baz', @source_position_1, 'some content here', @fragment_1_mtime)
     
     @fragment_set = AssetAggregator::Core::FragmentSet.new(@filters)
   end
@@ -67,6 +68,15 @@ describe AssetAggregator::Core::FragmentSet do
     @fragment_set.for_source_position(AssetAggregator::Core::SourcePosition.new('baz', 72)).should == fragment_3
     @fragment_set.for_source_position(AssetAggregator::Core::SourcePosition.new('baz', 73)).should be_nil
     @fragment_set.for_source_position(AssetAggregator::Core::SourcePosition.new('bax', 72)).should be_nil
+  end
+  
+  it "should return #max_mtime_for correctly" do
+    fragment_2 = make('bar/baz', 'baz', 34, 'bonko', @fragment_1_mtime + 1000)
+    fragment_3 = make('foo/bar', 'baz', 72, 'honk', @fragment_1_mtime + 2000)
+    
+    [ @fragment_1, fragment_2, fragment_3 ].each { |f| @fragment_set.add(f) }
+    @fragment_set.max_mtime_for('bar/baz').should == @fragment_1_mtime + 1000
+    @fragment_set.max_mtime_for('whatever/there').should be_nil
   end
   
   it "should return #all_subpaths correctly" do

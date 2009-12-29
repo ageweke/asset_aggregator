@@ -19,6 +19,12 @@ module AssetAggregator
         remove_all!
       end
       
+      # Returns the maximum modification time (#mtime) of any #Fragment in this set
+      # that maps to the given +subpath+. Used to generate cache-busting URLs.
+      def max_mtime_for(subpath)
+        @fragments.map { |f| f.mtime if f.target_subpaths.include?(subpath) }.compact.max
+      end
+      
       # Given a #SourcePosition, returns the #Fragment that has that #SourcePosition,
       # if any. Returns nil if none matches.
       def for_source_position(source_position)

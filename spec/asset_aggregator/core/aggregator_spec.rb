@@ -108,6 +108,17 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.refresh_fragments_since_calls.should == [ nil ]
   end
   
+  it "should call through to the fragment set on #max_mtime_for" do
+    mtime = Time.now.to_i - 123456
+    @test_fragment_set.should_receive(:max_mtime_for).once.with('foo/bar').and_return(mtime)
+    @aggregator.max_mtime_for('foo/bar').should == mtime
+  end
+  
+  it "should return a nil mtime if that's what the fragment set returns" do
+    @test_fragment_set.should_receive(:max_mtime_for).once.with('foo/bar').and_return(nil)
+    @aggregator.max_mtime_for('foo/bar').should be_nil
+  end
+  
   it "should pass its #fragment_sorting_proc through on #each_fragment_for" do
     subpath = 'foo/bar'
     sorting_proc = mock(:sorting_proc)
