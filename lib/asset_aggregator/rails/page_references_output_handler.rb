@@ -39,7 +39,7 @@ module AssetAggregator
       def start_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
         output_if_verbose "  <!-- Begin #{aggregate_type} includes -->"
         
-        if aggregate_type == :css
+        if aggregate_type == :css && need_to_import_css_instead?(subpath_references_pairs_this_type)
           output_if_verbose "    <!-- HACK HACK HACK: "
           output_if_verbose "         Internet Explorer can't handle more than 31 linked CSS stylesheets "
           output_if_verbose "         per page. We're therefore outputting a bunch of @import tags instead, "
