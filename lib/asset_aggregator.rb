@@ -215,6 +215,14 @@ module AssetAggregator
       standard_instance.refresh!
     end
     
+    def write_aggregated_files(base_dir = File.join(::Rails.root, 'public'))
+      standard_instance.write_aggregated_files(base_dir)
+    end
+    
+    def remove_aggregated_files(base_dir = File.join(::Rails.root, 'public'))
+      standard_instance.remove_aggregated_files(base_dir)
+    end
+    
     def all_types
       standard_instance.all_types
     end
@@ -329,11 +337,52 @@ module AssetAggregator
       net_url(url_for, aggregate_type, aggregate_type.to_s, subpath, options)
     end
     
-    def write_files
-      all_types.each do |aggregate_type_symbol|
-        all_subpaths(aggregate_type_symbol).each do |subpath|
-          
+    class UrlForClass
+      class << self
+        def default_url_options
+          { }
         end
+      end
+      
+      include ActionController::UrlWriter
+    end
+    
+    def object_to_call_url_for_on
+      @object_to_call_url_for_on ||= UrlForClass.new
+    end
+    
+    def type_and_subpath_to_file_map(base_directory)
+      out = { }
+      all_types.each do |aggregate_type|
+        all_subpaths(aggregate_type).each do |subpath|
+          url = aggregate_url(object_to_call_url_for_on.method(:url_for), aggregate_type, subpath, :only_path => true)
+          net = File.join(base_directory, url.split(%r{/+}))
+          out[ [ aggregate_type, subpath ] ] = net
+        end
+      end
+      out
+    end
+    
+    def remove_aggregated_files(base_directory = File.join(::Rails.root, 'public'))
+      map = type_and_subpath_to_file_map(base_directory)
+      map.values.each do |file|
+        $stderr.puts "FILE: #{file.inspect}"
+        if File.exist?(file)
+          puts "rm #{file}"
+          File.delete(file)
+        end
+      end
+    end
+    
+    def write_aggregated_files(base_directory = File.join(::Rails.root, 'public'))
+      require 'fileutils'
+      
+      map = type_and_subpath_to_file_map(base_directory)
+      map.each do |type_and_subpath, file|
+        (type, subpath) = type_and_subpath
+        FileUtils.mkdir_p(File.dirname(file))
+        File.open(file, 'w') { |f| f << content_for(type, subpath)}
+        puts "#{type}: #{subpath} -> #{file}"
       end
     end
     
