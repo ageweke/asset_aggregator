@@ -39,11 +39,16 @@ module AssetAggregator
         output_handler.start_all
         
         @reference_set.aggregate_types.each do |aggregate_type|
-          output_handler.start_aggregate_type(aggregate_type)
+          subpath_references_pairs_this_type = [ ]
           AssetAggregator.each_aggregate_reference_in_set(@reference_set, aggregate_type) do |subpath, references|
+            subpath_references_pairs_this_type << [ subpath, references ]
+          end
+          
+          output_handler.start_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
+          subpath_references_pairs_this_type.each do |(subpath, references)|
             output_handler.aggregate(aggregate_type, subpath, references)
           end
-          output_handler.end_aggregate_type(aggregate_type)
+          output_handler.end_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
         end
         
         output_handler.end_all

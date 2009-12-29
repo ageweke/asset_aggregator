@@ -8,6 +8,7 @@ module AssetAggregator
         @object_to_call_helper_methods_on = object_to_call_helper_methods_on
         @options = options
         @options[:verbose] = true if (! @options.has_key?(:verbose)) && ::Rails.env.development?
+        @options[:max_css_link_tags] ||= 31
       end
       
       def start_all
@@ -30,8 +31,27 @@ module AssetAggregator
         end
       end
       
-      def start_aggregate_type(aggregate_type)
+      def need_to_import_css_instead?(subpath_references_pairs_this_type)
+        subpath_references_pairs_this_type.length > @options[:max_css_link_tags]
+      end
+      
+      def start_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
         output_if_verbose "  <!-- Begin #{aggregate_type} includes -->"
+        
+        if aggregate_type == :css
+          output_if_verbose "    <!-- HACK HACK HACK: "
+          output_if_verbose "         Internet Explorer can't handle more than 31 linked CSS stylesheets "
+          output_if_verbose "         per page. We're therefore outputting a bunch of @import tags instead, "
+          output_if_verbose "         because we have #{subpath_references_pairs_this_type.length} stylesheets to import."
+          output_if_verbose "         (This number might be 31 or smaller if you've set :max_css_link_tags.)"
+          output_if_verbose "         This is disgusting, but necessary. "
+          output_if_verbose "    -->"
+          output "    <style media=\"all\" type=\"text/css\">"
+          output "    <!--"
+          @output_as_imports = true
+        else
+          @output_as_imports = false
+        end
       end
       
       def aggregate(aggregate_type, subpath, references)
@@ -59,8 +79,16 @@ module AssetAggregator
         end
       end
       
+      def current_comment_start
+        @output_as_imports ? "/*" : "<!--"
+      end
+      
+      def current_comment_end
+        @output_as_imports ? "*/" : "-->"
+      end
+      
       def aggregate_whole(aggregate_type, subpath, references)
-        output_if_verbose "    <!-- Aggregate '#{h(subpath)}' is required by:"
+        output_if_verbose "    #{current_comment_start} Aggregate '#{h(subpath)}' is required by:"
         references.each do |reference|
           text = "          #{reference}"
           if reference.kind_of?(AssetAggregator::Core::FragmentReference)
@@ -68,12 +96,16 @@ module AssetAggregator
           end
           output_if_verbose text
         end
-        output_if_verbose "    -->"
+        output_if_verbose "    #{current_comment_end}"
         output "    #{aggregate_include_tag_for(aggregate_type, subpath)}"
         output_if_verbose ""
       end
       
-      def end_aggregate_type(aggregate_type)
+      def end_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
+        if @output_as_imports
+          output "    -->"
+          output "    </style>"
+        end
         output_if_verbose "  <!-- End #{aggregate_type} includes -->"
       end
       
@@ -113,7 +145,12 @@ module AssetAggregator
       def include_tag_for_url(aggregate_type, url)
         case aggregate_type
         when :javascript then object_to_call_helper_methods_on.javascript_include_tag(url)
-        when :css then object_to_call_helper_methods_on.stylesheet_link_tag(url)
+        when :css
+          if @output_as_imports
+            "@import url(#{url});\n"
+          else
+            object_to_call_helper_methods_on.stylesheet_link_tag(url)
+          end
         else raise "Don't know how to take a URL and turn it into HTML that references that URL (e.g., the equivalent of <script src=\"...\">) for aggregates of type #{aggregate_type.inspect}; please subclass #{self.class.name}, override #aggregate_include_tag_for_url, and pass it in to PageReferenceSet#include_text"
         end
       end
