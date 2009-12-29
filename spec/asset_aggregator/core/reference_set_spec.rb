@@ -111,14 +111,14 @@ describe AssetAggregator::Core::ReferenceSet do
       # Yes, this test is reasonably arbitrary. On my machine, it does about 200
       # iterations in a second; the idea here is to keep someone from changing the
       # code in such a way that it gets much, much slower without anybody really
-      # noticing. If the "150 iterations in under a second" is too slow for someone's
+      # noticing. If the "<X> iterations in under a second" is too slow for someone's
       # machine, by all means, change it; the idea is to avoid major performance
       # regressions in the code, not set an absolute barrier.
       it "should compute relatively quickly" do
         [ @r1, @r2, @r3, @r4, @r5, @r6, @r7, @r8, @r9 ].each { |r| @reference_set.add(r) }
         
         start_time = Time.now
-        150.times do
+        100.times do
           @reference_set.each_aggregate_reference(:foo, mock(:asset_aggregator)) { |subpath, references| }
         end
         end_time = Time.now
