@@ -28,15 +28,13 @@ END
       end
 
       def start_aggregator(aggregator)
-        brief_string = "/* #{aggregator} */"
-        
         case options[:aggregator_comment]
         when nil, :none, false then
           # nothing
         when :brief then
-          output brief_string
-        when :obscured then
-          output brief_string
+          output "/* #{aggregator} */"
+        when :encrypted then
+          output "/* #{encrypt(aggregator)} */"
         when :full then
           output <<-END
 
@@ -52,15 +50,13 @@ END
       end
       
       def start_fragment(aggregator, fragment)
-        brief_string = "/* #{fragment.source_position} */"
-        
         case options[:fragment_comment]
         when nil, :none, false then
           # nothing
         when :brief then
-          output brief_string
-        when :obscured then
-          output brief_string
+          output "/* #{fragment.source_position} */"
+        when :encrypted then
+          output "/* #{encrypt(fragment.source_position)} */"
         when :full then
           output <<-END
 /* ----------------------------------------------------------------------
@@ -70,6 +66,54 @@ END
         else
           raise "Unknown fragment comment option #{options[:fragment_comment].inspect}"
         end
+      end
+      
+      class << self
+        def cipher(mode, key)
+          @ciphers ||= { }
+          @ciphers[ [ mode, key ] ] ||= begin
+            cipher = OpenSSL::Cipher::Cipher.new('aes-256-cbc')
+            cipher.send(mode)
+            cipher.key = Digest::SHA256.digest(key)
+            cipher
+          end
+        end
+
+        def run_cipher(mode, key, data)
+          cipher = cipher(mode, key)
+          output = cipher.update(data)
+          output << cipher.final
+          output
+        end
+
+        def encrypt(secret, plaintext)
+          if @encrypted_secret != secret
+            @encrypted = { }
+            @encrypted_secret = secret
+          end
+          
+          @encrypted[plaintext] ||= begin
+            out = Base64.encode64(run_cipher(:encrypt, secret, plaintext)).gsub(/[\r\n]+/, '')
+            encrypted(plaintext, out)
+            out
+          end
+        end
+        
+        def on_encryption(&proc)
+          # We use a global variable here, rather than a class variable, because
+          # in development mode our class gets reloaded on every single request.
+          $_asset_aggregator_common_output_handler_on_encryption = proc
+        end
+        
+        def encrypted(plaintext, ciphertext)
+          $_asset_aggregator_common_output_handler_on_encryption.call(plaintext, ciphertext) if $_asset_aggregator_common_output_handler_on_encryption
+        end
+      end
+      
+      private
+      def encrypt(s)
+        raise "You must specify an encryption secret with :secret" unless options[:secret]
+        self.class.encrypt(options[:secret], s.to_s)
       end
     end
   end

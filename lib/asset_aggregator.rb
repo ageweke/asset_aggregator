@@ -147,6 +147,18 @@ module AssetAggregator
       @standard_instance ||= Impl.new
     end
     
+    def output_options
+      standard_instance.output_options
+    end
+    
+    def output_options=(x)
+      standard_instance.output_options = x
+    end
+    
+    def on_encryption(&proc)
+      AssetAggregator::OutputHandlers::CommonOutputHandler.on_encryption(&proc)
+    end
+    
     def aggregate(type, output_handler_creator = nil, &definition_proc)
       standard_instance.set_aggregate_type(type, output_handler_creator, definition_proc)
     end
@@ -206,6 +218,10 @@ module AssetAggregator
     
     def output_options=(options)
       @output_options = options
+    end
+    
+    def output_options
+      @output_options
     end
 
     def set_aggregate_type(type, output_handler_creator, definition_proc)
