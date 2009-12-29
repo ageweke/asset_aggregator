@@ -1,0 +1,1 @@
+AssetAggregator.remove_aggregated_files

@@ -366,7 +366,6 @@ module AssetAggregator
     def remove_aggregated_files(base_directory = File.join(::Rails.root, 'public'))
       map = type_and_subpath_to_file_map(base_directory)
       map.values.each do |file|
-        $stderr.puts "FILE: #{file.inspect}"
         if File.exist?(file)
           puts "rm #{file}"
           File.delete(file)
