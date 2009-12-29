@@ -105,13 +105,10 @@ END
       
       class << self
         def cipher(mode, key)
-          @ciphers ||= { }
-          @ciphers[ [ mode, key ] ] ||= begin
-            cipher = OpenSSL::Cipher::Cipher.new('aes-256-cbc')
-            cipher.send(mode)
-            cipher.key = Digest::SHA256.digest(key)
-            cipher
-          end
+          cipher = OpenSSL::Cipher::Cipher.new('aes-256-cbc')
+          cipher.send(mode)
+          cipher.key = Digest::SHA256.digest(key)
+          cipher
         end
 
         def run_cipher(mode, key, data)
