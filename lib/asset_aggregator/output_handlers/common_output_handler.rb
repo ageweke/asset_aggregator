@@ -2,6 +2,41 @@ module AssetAggregator
   module OutputHandlers
     # An #AssetAggregator::Core::OutputHandler that writes output in a flexible
     # form that's compatible with Javascript and CSS both.
+    #
+    # This takes various options to indicate how you like your output -- passed
+    # in the constructor, as the last parameter, but more commonly set by (e.g.)
+    #   AssetAggregator.output_options[:header_comment] = :brief
+    #
+    # The available options are:
+    #
+    # * +:header_comment+ -- what should the comment at the very top of the output
+    #   file look like? +:none+ for none at all, +:brief+ for something like
+    #   +/* 'foo.js' @ 1262117701 */+, or +:full+ for something much more detailed.
+    #   Default: +:full+ in development mode, +:none+ otherwise.
+    # * +:aggregator_comment+ -- what should the comment before each aggregator's
+    #   output fragments look like? +:none+ for none at all, +:brief+ for 
+    #   just the aggregator's string, +:full+ for that decorated by lines of
+    #   asterisks, or +:encrypted+ for an encrypted version of +:brief+.
+    # * +:fragment_comment+ -- what should the comment above each output fragment
+    #   look like? +:none+ for none at all, +:brief+ for just the file (and line,
+    #   if applicable), +:full+ for that decorated by lines of hyphens, or
+    #   +:encrypted+ for an encrypted version of +:full+.
+    #
+    # = Encryption
+    #
+    # If you set any option to +:encrypted+, then you must also provide an 
+    # encryption secret with +:secret+. This is then used to encrypt the comment
+    # in question, using OpenSSL's aes-256-cbc cipher and a Base64 encoding.
+    # This prevents revealing information about the structure of your code in
+    # your aggregates. To decrypt, you can pass the resulting
+    # Base64-encoded string to +CommonOutputHandler.decrypt(secret, ciphertext)+.
+    # 
+    # However, you can also register a block that gets called on each encryption
+    # event (which should be rare; we cache the plaintext->ciphertext mappings,
+    # for speed) by passing it to AssetAggregator#on_encryption. It will get called
+    # each time something is encrypted; it'll be passed the plaintext and resulting
+    # Base64-encoded ciphertext. You can then use this to build up a dictionary
+    # of ciphertext->plaintext mappings, for later decoding.
     class CommonOutputHandler < AssetAggregator::Core::OutputHandler
       def extension
         raise "You must instantiate a subclass that overrides #extension"
@@ -97,6 +132,10 @@ END
             encrypted(plaintext, out)
             out
           end
+        end
+        
+        def decrypt(secret, ciphertext)
+          run_cipher(:decrypt, secret, Base64.decode64(ciphertext))
         end
         
         def on_encryption(&proc)
