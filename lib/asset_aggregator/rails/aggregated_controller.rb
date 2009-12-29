@@ -12,12 +12,12 @@ module AssetAggregator
           end
         end
         
-        other.send(:before_filter, :refresh_if_in_development)
+        other.send(:before_filter, :refresh_if_necessary)
       end
       
       private
-      def refresh_if_in_development
-        AssetAggregator.refresh! if ::Rails.env.development?
+      def refresh_if_necessary
+        AssetAggregator.refresh! if AssetAggregator.refresh_on_each_request
       end
       
       def mime_type_for_asset_type(asset_type)

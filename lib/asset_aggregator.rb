@@ -155,6 +155,14 @@ module AssetAggregator
       standard_instance.output_options = x
     end
     
+    def refresh_on_each_request
+      standard_instance.refresh_on_each_request
+    end
+    
+    def refresh_on_each_request=(x)
+      standard_instance.refresh_on_each_request = x
+    end
+    
     def on_encryption(&proc)
       AssetAggregator::OutputHandlers::CommonOutputHandler.on_encryption(&proc)
     end
@@ -171,12 +179,20 @@ module AssetAggregator
       standard_instance.each_aggregate_reference_in_set(reference_set, type, &block)
     end
     
+    def mtime_for(type, subpath)
+      standard_instance.mtime_for(type, subpath)
+    end
+    
     def fragment_for(type, fragment_source_position)
       standard_instance.fragment_for(type, fragment_source_position)
     end
     
     def fragment_content_for(type, fragment_source_position)
       standard_instance.fragment_content_for(type, fragment_source_position)
+    end
+    
+    def fragment_mtime_for(type, fragment_source_position)
+      standard_instance.fragment_mtime_for(type, fragment_source_position)
     end
     
     def refresh!
@@ -202,12 +218,14 @@ module AssetAggregator
       @file_cache = AssetAggregator::Core::FileCache.new
       
       if ::Rails.env.development?
+        @refresh_on_each_request = true
         @output_options = {
           :header_comment     => :full,
           :aggregator_comment => :full,
           :fragment_comment   => :full
         }
       else
+        @refresh_on_each_request = false
         @output_options = {
           :header_comment     => :none,
           :aggregator_comment => :brief,
@@ -222,6 +240,14 @@ module AssetAggregator
     
     def output_options
       @output_options
+    end
+    
+    def refresh_on_each_request
+      @refresh_on_each_request
+    end
+    
+    def refresh_on_each_request=(x)
+      @refresh_on_each_request = !!x
     end
 
     def set_aggregate_type(type, output_handler_creator, definition_proc)

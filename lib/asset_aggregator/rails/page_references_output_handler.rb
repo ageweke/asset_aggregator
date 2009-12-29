@@ -100,8 +100,14 @@ module AssetAggregator
         ERB::Util.html_escape(s)
       end
       
-      def cache_bust(url)
-        url
+      def cache_bust(url, mtime)
+        return url unless mtime
+        
+        if url =~ /\?/
+          url + "&_aamt=#{mtime.to_i}"
+        else
+          url + "?#{mtime.to_i}"
+        end
       end
       
       def include_tag_for_url(aggregate_type, url)
@@ -121,12 +127,13 @@ module AssetAggregator
       end
       
       def aggregate_subpath_url_for(aggregate_type, subpath)
-        object_to_call_helper_methods_on.url_for(
+        url = object_to_call_helper_methods_on.url_for(
           :controller => (options[:aggregated_controller_name] || 'aggregated'),
           :action => aggregate_type.to_s,
           :path => subpath.split(%r{/+}),
           :format => extension_for(aggregate_type),
           :only_path => false)
+        cache_bust(url, AssetAggregator.mtime_for(aggregate_type, subpath))
       end
       
       def aggregate_include_tag_for_url(aggregate_type, subpath, url)
@@ -146,12 +153,13 @@ module AssetAggregator
         path[-1] = $1 if path[-1] =~ /^(.*)\.#{extension}$/i
         
         path[-1] += ":#{source_position.line}" if source_position.line
-        object_to_call_helper_methods_on.url_for(
+        url = object_to_call_helper_methods_on.url_for(
           :controller => (options[:aggregated_controller_name] || 'aggregated'),
           :action => "#{aggregate_type}_fragment",
           :path => path,
           :format => extension_for(aggregate_type),
           :only_path => false)
+        cache_bust(url, AssetAggregator.fragment_mtime_for(aggregate_type, source_position))
       end
       
       def fragment_include_tag_for_url(aggregate_type, subpath, url)
