@@ -183,6 +183,14 @@ module AssetAggregator
       standard_instance.mtime_for(type, subpath)
     end
     
+    def aggregated_controller_name
+      standard_instance.aggregated_controller_name
+    end
+    
+    def aggregated_controller_name=(x)
+      standard_instance.aggregated_controller_name = x
+    end
+    
     def fragment_for(type, fragment_source_position)
       standard_instance.fragment_for(type, fragment_source_position)
     end
@@ -193,6 +201,14 @@ module AssetAggregator
     
     def fragment_mtime_for(type, fragment_source_position)
       standard_instance.fragment_mtime_for(type, fragment_source_position)
+    end
+    
+    def fragment_url(url_for, aggregate_type, source_position, options = { })
+      standard_instance.fragment_url(url_for, aggregate_type, source_position, options)
+    end
+    
+    def aggregate_url(url_for, aggregate_type, subpath, options = { })
+      standard_instance.aggregate_url(url_for, aggregate_type, subpath, options)
     end
     
     def refresh!
@@ -216,6 +232,7 @@ module AssetAggregator
     def initialize
       @aggregate_types = { }
       @file_cache = AssetAggregator::Core::FileCache.new
+      @aggregated_controller_name = 'aggregated'
       
       if ::Rails.env.development?
         @refresh_on_each_request = true
@@ -232,6 +249,14 @@ module AssetAggregator
           :fragment_comment   => :brief
         }
       end
+    end
+    
+    def aggregated_controller_name
+      @aggregated_controller_name
+    end
+    
+    def aggregated_controller_name=(x)
+      @aggregated_controller_name = x
     end
     
     def output_options=(options)
@@ -288,6 +313,30 @@ module AssetAggregator
       out
     end
     
+    def extension_for(aggregate_type)
+      case aggregate_type
+      when :javascript then 'js'
+      when :css then 'css'
+      else raise("Don't know what extension #{aggregate_type.inspect} references should have in their URL")
+      end
+    end
+    
+    def fragment_url(url_for, aggregate_type, source_position, options = { })
+      net_url(url_for, aggregate_type, "#{aggregate_type}_fragment", subpath, options)
+    end
+    
+    def aggregate_url(url_for, aggregate_type, subpath, options = { })
+      net_url(url_for, aggregate_type, aggregate_type.to_s, subpath, options)
+    end
+    
+    def write_files
+      all_types.each do |aggregate_type_symbol|
+        all_subpaths(aggregate_type_symbol).each do |subpath|
+          
+        end
+      end
+    end
+    
     def fragment_mtime_for(type, fragment_source_position)
       out = nil
       type = @aggregate_types[type]
@@ -318,6 +367,16 @@ module AssetAggregator
     private
     def aggregate_type(type_name)
       @aggregate_types[type_name.to_sym] || (raise "There are no aggregations defined for type #{type_name.inspect}")
+    end
+
+    def net_url(url_for, aggregate_type, action, path, options)
+      url_for.call({
+        :controller => aggregated_controller_name,
+        :action => action.to_s,
+        :path => path.split(%r{/+}),
+        :format => extension_for(aggregate_type),
+        :only_path => false
+        }.merge(options))
     end
   end
 end

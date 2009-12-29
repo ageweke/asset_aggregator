@@ -9,6 +9,7 @@ module AssetAggregator
         @options = options
         @options[:verbose] = true if (! @options.has_key?(:verbose)) && ::Rails.env.development?
         @options[:max_css_link_tags] ||= 31
+        @options[:aggregated_controller_name] ||= 'aggregated'
       end
       
       def start_all
@@ -43,7 +44,7 @@ module AssetAggregator
           output_if_verbose "         Internet Explorer can't handle more than 31 linked CSS stylesheets "
           output_if_verbose "         per page. We're therefore outputting a bunch of @import tags instead, "
           output_if_verbose "         because we have #{subpath_references_pairs_this_type.length} stylesheets to import."
-          output_if_verbose "         (This number might be 31 or smaller if you've set :max_css_link_tags.)"
+          output_if_verbose "         (This number might be smaller than 32 if you've set :max_css_link_tags.)"
           output_if_verbose "         This is disgusting, but necessary. "
           output_if_verbose "    -->"
           output "    <style media=\"all\" type=\"text/css\">"
@@ -164,12 +165,7 @@ module AssetAggregator
       end
       
       def aggregate_subpath_url_for(aggregate_type, subpath)
-        url = object_to_call_helper_methods_on.url_for(
-          :controller => (options[:aggregated_controller_name] || 'aggregated'),
-          :action => aggregate_type.to_s,
-          :path => subpath.split(%r{/+}),
-          :format => extension_for(aggregate_type),
-          :only_path => false)
+        url = AssetAggregator.aggregate_url(object_to_call_helper_methods_on.method(:url_for), aggregate_type, subpath)
         cache_bust(url, AssetAggregator.mtime_for(aggregate_type, subpath))
       end
       
@@ -190,12 +186,7 @@ module AssetAggregator
         path[-1] = $1 if path[-1] =~ /^(.*)\.#{extension}$/i
         
         path[-1] += ":#{source_position.line}" if source_position.line
-        url = object_to_call_helper_methods_on.url_for(
-          :controller => (options[:aggregated_controller_name] || 'aggregated'),
-          :action => "#{aggregate_type}_fragment",
-          :path => path,
-          :format => extension_for(aggregate_type),
-          :only_path => false)
+        url = AssetAggregator.fragment_url(object_to_call_helper_methods_on.method(:url), aggregate_type, source_position)
         cache_bust(url, AssetAggregator.fragment_mtime_for(aggregate_type, source_position))
       end
       
