@@ -79,7 +79,7 @@ module AssetAggregator
       def content_for(subpath)
         found_content = false
         
-        output_handler = @output_handler_creator.call(self, subpath)
+        output_handler = @output_handler_creator.call(self, subpath, max_mtime_for(subpath))
         
         output_handler.start_all
         @aggregators.each_with_index do |aggregator, index|

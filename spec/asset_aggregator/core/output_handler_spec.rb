@@ -4,13 +4,15 @@ describe AssetAggregator::Core::OutputHandler do
   before :each do
     @aggregate_type = mock(:aggregate_type)
     @subpath = "foo/bar"
+    @mtime = Time.now.to_i - 1000
     @options = mock(:options)
     
-    @output_handler = AssetAggregator::Core::OutputHandler.new(@aggregate_type, @subpath, @options)
+    @output_handler = AssetAggregator::Core::OutputHandler.new(@aggregate_type, @subpath, @mtime, @options)
   end
   
   it "should return components correctly" do
     @output_handler.send(:aggregate_type).should == @aggregate_type
+    @output_handler.send(:mtime).should == @mtime
     @output_handler.send(:subpath).should == @subpath
     @output_handler.send(:options).should == @options
   end

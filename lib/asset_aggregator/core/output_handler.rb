@@ -11,9 +11,10 @@ module AssetAggregator
       # (with +Rails.root+ stripped off, if present) of a #Fragment, in the case
       # where we're outputting a single fragment (used in development mode when
       # requested).
-      def initialize(aggregate_type, subpath, options)
+      def initialize(aggregate_type, subpath, mtime, options)
         @aggregate_type = aggregate_type
         @subpath = subpath
+        @mtime = mtime
         @options = options
         
         @out = StringIO.new
@@ -76,7 +77,7 @@ module AssetAggregator
       end
       
       private
-      attr_reader :aggregate_type, :subpath, :options
+      attr_reader :aggregate_type, :subpath, :options, :mtime
       
       # Outputs the given string to the in-memory #StringIO object that we're
       # building up, using the same semantics as #puts.

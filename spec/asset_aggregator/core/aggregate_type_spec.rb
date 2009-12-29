@@ -206,11 +206,12 @@ describe AssetAggregator::Core::AggregateType do
   end
   
   it "should call the output handler class in the right order" do
-    fragment1 = mock(:fragment1)
+    base_mtime = Time.now.to_i - 1000
+    fragment1 = mock(:fragment1, :mtime => base_mtime)
     fragment1.should_receive(:filtered_content).and_return("foo")
-    fragment2 = mock(:fragment2)
+    fragment2 = mock(:fragment2, :mtime => base_mtime + 100)
     fragment2.should_receive(:filtered_content).and_return("bar")
-    fragment3 = mock(:fragment3)
+    fragment3 = mock(:fragment3, :mtime => base_mtime + 200)
     fragment3.should_receive(:filtered_content).and_return("baz")
     
     subpath = 'foo/bar'
@@ -218,12 +219,14 @@ describe AssetAggregator::Core::AggregateType do
     aggregators = @aggregate_type.instance_variable_get(:@aggregators)
     (aggregator1, aggregator2) = aggregators
     
+    aggregator1.should_receive(:max_mtime_for).with(subpath).and_return(base_mtime + 300)
     aggregator1.should_receive(:each_fragment_for).with(subpath).and_yield(fragment1).and_yield(fragment2)
+    aggregator2.should_receive(:max_mtime_for).with(subpath).and_return(base_mtime + 400)
     aggregator2.should_receive(:each_fragment_for).with(subpath).and_yield(fragment3)
     
 
     output_handler = mock(:output_handler)
-    @output_handler_creator.should_receive(:call).with(@aggregate_type, subpath).and_return(output_handler)
+    @output_handler_creator.should_receive(:call).with(@aggregate_type, subpath, base_mtime + 400).and_return(output_handler)
     
     output_handler.should_receive(:start_all).ordered
     
@@ -259,7 +262,7 @@ describe AssetAggregator::Core::AggregateType do
     subpath = 'bonk/whatever'
     
     output_handler = mock(:output_handler)
-    @output_handler_creator.should_receive(:call).with(@aggregate_type, subpath).and_return(output_handler)
+    @output_handler_creator.should_receive(:call).with(@aggregate_type, subpath, nil).and_return(output_handler)
     
     output_handler.should_receive(:start_all).ordered
     output_handler.should_receive(:start_aggregator).with(aggregator1).ordered
@@ -269,7 +272,9 @@ describe AssetAggregator::Core::AggregateType do
     output_handler.should_receive(:end_aggregator).with(aggregator2).ordered
     output_handler.should_receive(:end_all).ordered
     
+    aggregator1.should_receive(:max_mtime_for).with(subpath).and_return(nil)
     aggregator1.should_receive(:each_fragment_for).with(subpath)
+    aggregator2.should_receive(:max_mtime_for).with(subpath).and_return(nil)
     aggregator2.should_receive(:each_fragment_for).with(subpath)
     
     @aggregate_type.content_for(subpath).should be_nil
