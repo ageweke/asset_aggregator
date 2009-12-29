@@ -61,7 +61,7 @@ describe AssetAggregator::OutputHandlers::CommonOutputHandler do
     add(output_handler, aggregators[0], [ mock(:fragment1, :content => 'yo ho ho', :source_position => 'sp1'), mock(:fragment2, :content => 'and a bottle of rum', :source_position => 'sp2') ])
     add(output_handler, aggregators[1], [ mock(:fragment3, :content => 'a pirate\'s life for me', :source_position => 'sp3') ])
     
-    normalized_text(output_handler).should match(%r{foo/bar.xyz.*aggregator1yo.*sp1.*yo ho ho.*sp2.*and a bottle of rum.*aggregator2yo.*sp3.*a pirate's life for me})
+    normalized_text(output_handler).should match(%r{['"]?foo/bar.xyz['"]?\s*@\s*\d+.*aggregator1yo.*sp1.*yo ho ho.*sp2.*and a bottle of rum.*aggregator2yo.*sp3.*a pirate's life for me})
   end
   
   def check_substrings(source, substrings)
@@ -107,10 +107,35 @@ describe AssetAggregator::OutputHandlers::CommonOutputHandler do
     sp3_encrypted = encryption_calls[4].last
     
     check_substrings(result, [ 'foo/bar.xyz', aggregator1yo_encrypted, sp1_encrypted, 'yo ho ho', sp2_encrypted, 'and a bottle of rum', aggregator2yo_encrypted, sp3_encrypted, "a pirate's life for me" ])
-    
+
     # This fails -- I believe because encrypted data ends up with metacharacters
     # that throw off the regex. Hence we check using #index, above, instead.
     # result.should match(%r{foo/bar.xyz.*#{aggregator1yo_encrypted}.*#{sp1_encrypted}.*yo ho ho.*#{sp2_encrypted}.*and a bottle of rum.*#{aggregator2yo_encrypted}.*#{sp3_encrypted}.*a pirate's life for me})
+    
+    %w{aggregator1yo sp1 sp2 aggregator2yo sp3}.each do |substring|
+      result.index(substring).should be_nil
+    end
+  end
+  
+  it "should encrypt things only once" do
+    encryption_call_totals = [ ]
+    
+    2.times do
+      output_handler = make(:header_comment => :full, :aggregator_comment => :encrypted, :fragment_comment => :encrypted, :secret => 'foobar123')
+      encryption_calls = [ ]
+      encryption_proc = Proc.new { |plaintext, ciphertext| encryption_calls << [ plaintext, ciphertext ] }
+      AssetAggregator::OutputHandlers::CommonOutputHandler.on_encryption(&encryption_proc)
+    
+      aggregators = [ mock(:aggregator1, :to_s => 'aggregator1yo'), mock(:aggregator2, :to_s => 'aggregator2yo') ]
+      add(output_handler, aggregators[0], [ mock(:fragment1, :content => 'yo ho ho', :source_position => 'sp1'), mock(:fragment2, :content => 'and a bottle of rum', :source_position => 'sp2') ])
+      add(output_handler, aggregators[1], [ mock(:fragment3, :content => 'a pirate\'s life for me', :source_position => 'sp3') ])
+    
+      normalized_text(output_handler)
+      
+      encryption_call_totals << encryption_calls.length
+    end
+    
+    encryption_call_totals[0].should == encryption_call_totals[1]
   end
   
   it "should omit headers, when requested" do

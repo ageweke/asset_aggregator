@@ -12,7 +12,7 @@ module AssetAggregator
         when nil, :none, false then
           # nothing
         when :brief then
-          output "/* '#{subpath}.#{extension}' */"
+          output "/* '#{subpath}.#{extension}' @ #{Time.now.to_i} */"
         when :full then
           output <<-END
 /************************************************************************
