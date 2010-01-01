@@ -83,7 +83,7 @@ module AssetAggregator
       # which aggregated assets could I include?".
       def aggregated_subpaths_for(fragment_source_position)
         ensure_loaded!
-        fragment_set.aggregated_subpaths_for(fragment_source_position)
+        fragment_set.aggregated_subpaths_for(fragment_source_position) || [ ]
       end
       
       private

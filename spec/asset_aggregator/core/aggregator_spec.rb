@@ -69,6 +69,12 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.refresh_fragments_since_calls.should == [ nil ]
   end
   
+  it "should return an empty Array for #aggregated_subpaths_for, rather than nil, if none are found" do
+    source_position = mock(:source_position)
+    @test_fragment_set.should_receive(:aggregated_subpaths_for).once.with(source_position).and_return(nil)
+    @aggregator.aggregated_subpaths_for(source_position).should == [ ]
+  end
+  
   it "should return the filtered content from a fragment correctly" do
     fragment = mock(:fragment)
     filtered_content = "filteredyo"
