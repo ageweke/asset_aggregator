@@ -20,3 +20,4 @@ module AssetAggregator
 end
 
 ActionView::Base.send(:include, AssetAggregator::Rails::Requires)
+ActionView::Base.send(:include, AssetAggregator::Rails::AssetPackagerCompatibilityHelper)
