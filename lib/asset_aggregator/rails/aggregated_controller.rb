@@ -49,14 +49,28 @@ module AssetAggregator
         if content
           render :text => content, :content_type => mime_type_for_asset_type(asset_type)
         else
-          if ::Rails.env.development?
-            message = "No content found for asset type #{asset_type.inspect}, fragment source position #{source_position}"
-          else
-            message = "No content found."
-          end
-          
-          render :text => message, :status => :not_found
+          fragment_not_found(asset_type, source_position)
         end
+      end
+      
+      def fragment_not_found(asset_type, source_position)
+        if ::Rails.env.development?
+          message = "No content found for asset type #{asset_type.inspect}, fragment source position #{source_position}"
+        else
+          message = "No content found."
+        end
+        
+        render :text => message, :status => :not_found
+      end
+      
+      def subpath_not_found(asset_type, subpath)
+        if ::Rails.env.development?
+          message = "No content found for asset type #{asset_type.inspect}, subpath #{subpath.inspect}; I have the following subpaths for this type: #{AssetAggregator.all_subpaths(asset_type).inspect}"
+        else
+          message = "No content found."
+        end
+        
+        render :text => message, :status => :not_found
       end
       
       def subpath
@@ -73,13 +87,7 @@ module AssetAggregator
         if content
           render :text => content, :content_type => mime_type_for_asset_type(asset_type)
         else
-          if ::Rails.env.development?
-            message = "No content found for asset type #{asset_type.inspect}, subpath #{subpath.inspect}; I have the following subpaths for this type: #{AssetAggregator.all_subpaths(asset_type).inspect}"
-          else
-            message = "No content found."
-          end
-          
-          render :text => message, :status => :not_found
+          subpath_not_found(asset_type, subpath)
         end
       end
     end
