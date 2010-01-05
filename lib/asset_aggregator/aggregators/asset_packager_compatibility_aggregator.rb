@@ -33,7 +33,7 @@ module AssetAggregator
       
       def refresh_fragments_since(last_refresh_fragments_since_time)
         complete_refresh = false
-
+        
         if (! @fragment_source_file_to_subpaths_map) || (File.exist?(@asset_packager_yml_file) && File.mtime(@asset_packager_yml_file) >= Time.at(last_refresh_fragments_since_time.to_i))
           fragment_set.remove_all!
           complete_refresh = true
@@ -41,9 +41,11 @@ module AssetAggregator
         end
 
         @fragment_source_file_to_subpaths_map.each do |fragment_source_file, subpaths|
-          fragment_set.remove_all_for_file(fragment_source_file) unless complete_refresh
-          if File.exist?(fragment_source_file)
-            fragment_set.add(AssetAggregator::Core::Fragment.new(subpaths, AssetAggregator::Core::SourcePosition.new(fragment_source_file, nil), File.read(fragment_source_file), File.mtime(fragment_source_file)))
+          if (! last_refresh_fragments_since_time) || (! File.exist?(fragment_source_file)) || (File.mtime(fragment_source_file) >= last_refresh_fragments_since_time)
+            fragment_set.remove_all_for_file(fragment_source_file) unless complete_refresh
+            if File.exist?(fragment_source_file)
+              fragment_set.add(AssetAggregator::Core::Fragment.new(subpaths, AssetAggregator::Core::SourcePosition.new(fragment_source_file, nil), File.read(fragment_source_file), File.mtime(fragment_source_file)))
+            end
           end
         end
       end
