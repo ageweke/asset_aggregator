@@ -18,7 +18,6 @@ module AssetAggregator
       def initialize(aggregate_type, file_cache, filters)
         @fragment_set = AssetAggregator::Core::FragmentSet.new(filters)
         @file_cache = file_cache
-        @filtered_content_cache = { }
         @aggregate_type = aggregate_type
         @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
       end
