@@ -1,13 +1,17 @@
 module AssetAggregator
   module Rails
     module AssetPackagerCompatibilityHelper
-      def javascript_include_merged(*sources)
+      def javascript_include_aggregate(*sources)
         merged_tags(sources, method(:javascript_include_tag), :javascript, true)
       end
       
-      def stylesheet_link_merged(*sources)
+      alias_method :javascript_include_merged, :javascript_include_aggregate
+      
+      def stylesheet_link_aggregate(*sources)
         merged_tags(sources, method(:stylesheet_link_tag), :css, false)
       end
+      
+      alias_method :stylesheet_link_merged, :stylesheet_link_aggregate
       
       private
       def merged_tags(sources, tag_method, asset_type, expand_sources)
