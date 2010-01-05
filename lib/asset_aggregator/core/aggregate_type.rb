@@ -112,14 +112,14 @@ module AssetAggregator
       # literally to the constructor for the given class, and can be anything you want.
       # Any filters currently in effect (see #filter_with, below) are applied to this
       # aggregator.
-      def add(aggregator_name, *args)
+      def add(aggregator_name, *args, &block)
         filters = Thread.current[:asset_aggregator_filters] || [ ]
         args = [ self, @file_cache, filters ] + args
         
         aggregator = if aggregator_name.kind_of?(String) || aggregator_name.kind_of?(Symbol)
-          "AssetAggregator::Aggregators::#{aggregator_name.to_s.camelize}Aggregator".constantize.new(*args)
+          "AssetAggregator::Aggregators::#{aggregator_name.to_s.camelize}Aggregator".constantize.new(*args, &block)
         elsif aggregator_name.kind_of?(Class)
-          aggregator_name.new(*args)
+          aggregator_name.new(*args, &block)
         else
           raise "Unknown Aggregator type #{aggregator_name.inspect}"
         end

@@ -2,14 +2,15 @@ require 'spec/spec_helper'
 
 describe AssetAggregator::Core::AggregateType do
   class TestAggregatorClass
-    attr_reader :aggregate_type, :file_cache, :filters, :name, :extra
+    attr_reader :aggregate_type, :file_cache, :filters, :name, :extra, :block
     
-    def initialize(aggregate_type, file_cache, filters, name, extra = nil)
+    def initialize(aggregate_type, file_cache, filters, name, extra = nil, &block)
       @aggregate_type = aggregate_type
       @file_cache = file_cache
       @filters = filters
       @name = name
       @extra = extra
+      @block = block
     end
     
     def filtered_content_from(fragment)
@@ -53,6 +54,24 @@ describe AssetAggregator::Core::AggregateType do
   
   def filters_from(aggregator)
     aggregator.instance_variable_get(:@fragment_set).instance_variable_get(:@filters)
+  end
+  
+  it "should pass blocks through to aggregators" do
+    proc_1 = Proc.new { |f| 'ha' }
+    proc_2 = Proc.new { |f| 'yo' }
+    
+    definition_proc = Proc.new do
+      add(TestAggregatorClass, :foo, &proc_1)
+      add(TestAggregatorClass, :bar, :baz, &proc_2)
+    end
+    
+    @aggregate_type = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
+    
+    aggregators = @aggregate_type.instance_variable_get(:@aggregators)
+    aggregators.length.should == 2
+    
+    aggregators[0].block.should == proc_1
+    aggregators[1].block.should == proc_2
   end
   
   it "should add predefined aggregators" do
