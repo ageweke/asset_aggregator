@@ -50,15 +50,8 @@ module AssetAggregator
         @root = root
         @inclusion_proc = normalize_inclusion_proc(inclusion_proc)
         @subpath_definition_proc = subpath_definition_proc || method(:default_subpath_definition)
-        @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
       end
 
-      # FOR TESTING ONLY. Sets the FilesystemImpl-compatible object that this class
-      # will use to talk to the filesystem.
-      def filesystem_impl=(impl)
-        @filesystem_impl = impl
-      end
-      
       # A nice human-readable description.
       def to_s
         ":files, \'#{AssetAggregator::Core::SourcePosition.trim_rails_root(@root)}\', ..."
@@ -102,25 +95,6 @@ module AssetAggregator
         end
         
         inclusion_proc || (Proc.new { |f| true })
-      end
-      
-      # Implements the default subpath definition policy -- in other words,
-      # this is the default definition of the block that gets passed to the
-      # constructor.
-      def default_subpath_definition(file, content)
-        file = @filesystem_impl.canonical_path(file)
-        rails_root_canonical = @filesystem_impl.canonical_path(::Rails.root)
-        
-        out = File.basename(file)
-        out = $1 if out =~ /^([^\.]+)\./
-        
-        if file[0..(::Rails.root.length - 1)] == rails_root_canonical
-          file = file[(::Rails.root.length + 1)..-1] 
-          components = file.split(File::SEPARATOR).map { |c| c.strip.downcase }
-          out = components[2] if components.length > 3 && components[0] == 'app'
-        end
-        
-        out
       end
     end
   end

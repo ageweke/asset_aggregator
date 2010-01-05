@@ -20,6 +20,13 @@ module AssetAggregator
         @file_cache = file_cache
         @filtered_content_cache = { }
         @aggregate_type = aggregate_type
+        @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
+      end
+      
+      # FOR TESTING ONLY. Sets the FilesystemImpl-compatible object that this class
+      # will use to talk to the filesystem.
+      def filesystem_impl=(impl)
+        @filesystem_impl = impl
       end
       
       # Returns the maximum modification time (as an integer, in Time#to_i
@@ -88,6 +95,34 @@ module AssetAggregator
       
       private
       attr_reader :fragment_set, :aggregate_type
+      
+      # Not used by the #Aggregator class itself, but by subclasses. This is the
+      # default method that determines where files get aggregated -- it accepts
+      # the full path of a file (+file+), and the raw content in that file, and
+      # returns the subpaths to which it should be aggregated.
+      #
+      # This method does the following:
+      #
+      # - If +file+ is under +#{Rails.root}/app/<something>+, returns +something+.
+      # - Otherwise, returns the base of the filename, without extensions --
+      #   i.e., +foo/bar.html.erb+ maps to +bar+.
+      #
+      # This should hopefully provide a sane default.
+      def default_subpath_definition(file, content)
+        file = @filesystem_impl.canonical_path(file)
+        rails_root_canonical = @filesystem_impl.canonical_path(::Rails.root)
+        
+        out = File.basename(file)
+        out = $1 if out =~ /^([^\.]+)\./
+        
+        if file[0..(::Rails.root.length - 1)] == rails_root_canonical
+          file = file[(::Rails.root.length + 1)..-1] 
+          components = file.split(File::SEPARATOR).map { |c| c.strip.downcase }
+          out = components[2] if components.length > 3 && components[0] == 'app'
+        end
+        
+        out
+      end
       
       # Returns the symbol associated with the #AggregateType, like :javascript
       # or :css.

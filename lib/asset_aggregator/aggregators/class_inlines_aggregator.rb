@@ -14,7 +14,6 @@ module AssetAggregator
           { 'rb' => [ method_name ] }
         end
         @root = File.expand_path(root)
-        @filesystem_impl = AssetAggregator::Core::FilesystemImpl.new
         @subpath_definition_proc = subpath_definition_proc || method(:default_subpath_definition)
         @file_to_class_proc = file_to_class_proc || method(:default_file_to_class)
       end
@@ -24,22 +23,6 @@ module AssetAggregator
       end
 
       private
-      def default_subpath_definition(file, content)
-        file = @filesystem_impl.canonical_path(file)
-        rails_root_canonical = @filesystem_impl.canonical_path(::Rails.root)
-        
-        out = File.basename(file)
-        out = $1 if out =~ /^([^\.]+)\./
-        
-        if file[0..(::Rails.root.length - 1)] == rails_root_canonical
-          file = file[(::Rails.root.length + 1)..-1] 
-          components = file.split(File::SEPARATOR).map { |c| c.strip.downcase }
-          out = components[2] if components.length > 3 && components[0] == 'app'
-        end
-        
-        out
-      end
-      
       def default_file_to_class(file_path)
         file_path = file_path[(@root.length + 1)..-1] if file_path[0..(@root.length - 1)].downcase == @root.downcase
         file_path = $1 if file_path =~ /^(.*)\.[^\/]+/

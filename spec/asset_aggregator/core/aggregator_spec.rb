@@ -138,6 +138,19 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.refresh_fragments_since_calls.should == [ nil ]
   end
   
+  describe "#default_subpath_definition" do
+    it "should return subdirectories under Rails.root correctly" do
+      @aggregator.send(:default_subpath_definition, File.join(Rails.root, "app", "foo", "bar", "baz", "quux.html.erb"), "whatever").should == 'bar'
+      @aggregator.send(:default_subpath_definition, File.join(Rails.root, "app", "foo.html.erb"), "whatever").should == 'foo'
+      @aggregator.send(:default_subpath_definition, File.join(Rails.root, "bonk.html.erb"), "whatever").should == 'bonk'
+    end
+
+    it "should return other files correctly" do
+      @aggregator.send(:default_subpath_definition, "/foo/bar/baz.x.y.z", "whatever").should == 'baz'
+      @aggregator.send(:default_subpath_definition, "foo/bar/baz.x.y.z", "whatever").should == 'baz'
+    end
+  end
+  
   context "when looking at tagged subpaths" do
     before :each do
       @subpaths = %w{foo/bar bar/baz}
