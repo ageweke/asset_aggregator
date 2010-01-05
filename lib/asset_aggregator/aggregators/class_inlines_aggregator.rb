@@ -4,15 +4,7 @@ module AssetAggregator
       def initialize(aggregate_type, file_cache, filters, root, extension_to_method_names_map = nil, file_to_class_proc = nil, &subpath_definition_proc)
         super(aggregate_type, file_cache, filters)
         @extension_to_method_names_map = extension_to_method_names_map
-        @extension_to_method_names_map ||= begin
-          method_name = case aggregate_type.type
-          when :javascript then :aggregated_javascript
-          when :css then :aggregated_css
-          else
-            raise "Unknown method name for type #{aggregate_type.type.inspect}"
-          end
-          { 'rb' => [ method_name ] }
-        end
+        @extension_to_method_names_map ||= default_extension_to_method_names_map(aggregate_type)
         @root = File.expand_path(root)
         @subpath_definition_proc = subpath_definition_proc || method(:default_subpath_definition)
         @file_to_class_proc = file_to_class_proc || method(:default_file_to_class)
@@ -23,6 +15,17 @@ module AssetAggregator
       end
 
       private
+      def default_extension_to_method_names_map(aggregate_type)
+        method_name = case aggregate_type.type
+        when :javascript then :aggregated_javascript
+        when :css then :aggregated_css
+        else
+          raise "Unknown default method name for type #{aggregate_type.type.inspect}; you must pass an extension_to_method_names_map"
+        end
+        
+        { 'rb' => [ method_name ] }
+      end
+      
       def default_file_to_class(file_path)
         file_path = file_path[(@root.length + 1)..-1] if file_path[0..(@root.length - 1)].downcase == @root.downcase
         file_path = $1 if file_path =~ /^(.*)\.[^\/]+/
@@ -41,31 +44,34 @@ module AssetAggregator
         raise "Can't find class that '#{file_path}' maps to; tried: #{tries.inspect}"
       end
       
+      def extract_fragments_from_file(file, methods)
+        klass = @file_to_class_proc.call(file)
+        mtime = @filesystem_impl.mtime(file)
+        
+        methods.each do |method|
+          next unless klass.respond_to?(method)
+          (klass.send(method) || [ ]).each do |(content, line_number)|
+            raise "You must supply a numeric line number, not #{line_number.inspect}" if line_number && (! line_number.kind_of?(Integer))
+            
+            target_subpaths = @subpath_definition_proc.call(file, content)
+            source_position = AssetAggregator::Core::SourcePosition.new(file, line_number)
+            fragment = AssetAggregator::Core::Fragment.new(target_subpaths, source_position, content, mtime)
+            fragment_set.add(fragment)
+          end
+        end
+      end
+      
       def refresh_fragments_since(last_refresh_fragments_since_time)
         @file_cache.changed_files_since(@root, last_refresh_fragments_since_time).each do |changed_file|
           next if File.basename(changed_file) =~ /^\./ || @filesystem_impl.directory?(changed_file)
           extension = File.extname(changed_file)
           extension = $1 if extension =~ /\.+([^\.]+)$/i
           extension = extension.strip.downcase
-          mtime = @filesystem_impl.mtime(changed_file)
           
           methods = @extension_to_method_names_map[extension]
           if methods
-            methods = Array(methods)
             fragment_set.remove_all_for_file(changed_file)
-            
-            if @filesystem_impl.exist?(changed_file)
-              klass = default_file_to_class(changed_file)
-              methods.each do |method|
-                next unless klass.respond_to?(method)
-                (klass.send(method) || [ ]).each do |(content, line_number)|
-                  target_subpaths = @subpath_definition_proc.call(changed_file, content)
-                  source_position = AssetAggregator::Core::SourcePosition.new(changed_file, line_number)
-                  fragment = AssetAggregator::Core::Fragment.new(target_subpaths, source_position, content, mtime)
-                  fragment_set.add(fragment)
-                end
-              end
-            end
+            extract_fragments_from_file(changed_file, Array(methods)) if @filesystem_impl.exist?(changed_file)
           end
         end
       end
