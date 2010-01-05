@@ -401,13 +401,15 @@ module AssetAggregator
 Because Mongrel will always prefer a file in public/ to calling Rails,
 this means you will always run with the pre-aggregated copies, which
 may not be up to date. If you're running in an environment like development
-which should serve up dynamic copies of these files, simply remove them;
-if you're running in an environment like production where having these
-pre-aggregated copies should be OK, you should set
-AssetAggregator.allow_aggregated_files = true.
+which should serve up dynamic copies of these files, simply remove them
+(or just run rake asset:aggregator:clean); if you're running in an
+environment like production where having these pre-aggregated copies should
+be OK, you should set AssetAggregator.allow_aggregated_files = true.
 
 Files found:
-#{extra_files.join("\n")}}
+#{extra_files.join("\n")}
+
+}
       end
     end
     
