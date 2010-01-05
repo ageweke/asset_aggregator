@@ -147,6 +147,10 @@ module AssetAggregator
       @standard_instance ||= Impl.new
     end
     
+    def allow_aggregated_files=(x)
+      standard_instance.allow_aggregated_files = x
+    end
+    
     def output_options
       standard_instance.output_options
     end
@@ -249,6 +253,7 @@ module AssetAggregator
           :aggregator_comment => :full,
           :fragment_comment   => :full
         }
+        @allow_aggregated_files = false
       else
         @refresh_on_each_request = false
         @output_options = {
@@ -256,7 +261,16 @@ module AssetAggregator
           :aggregator_comment => :brief,
           :fragment_comment   => :brief
         }
+        @allow_aggregated_files = true
       end
+    end
+    
+    def allow_aggregated_files=(x)
+      @allow_aggregated_files = x
+    end
+    
+    def allow_aggregated_files?
+      @allow_aggregated_files || $_asset_aggregator_allow_aggregated_files
     end
     
     def aggregated_controller_name
@@ -291,6 +305,7 @@ module AssetAggregator
       end
       
       @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_creator, definition_proc)
+      verify_no_aggregated_files unless allow_aggregated_files?
     end
     
     def aggregated_subpaths_for(type, fragment_source_position)
@@ -351,6 +366,10 @@ module AssetAggregator
       @object_to_call_url_for_on ||= UrlForClass.new
     end
     
+    def default_base_directory
+      @default_base_directory ||= File.join(::Rails.root, 'public')
+    end
+    
     def type_and_subpath_to_file_map(base_directory)
       out = { }
       all_types.each do |aggregate_type|
@@ -363,7 +382,7 @@ module AssetAggregator
       out
     end
     
-    def remove_aggregated_files(base_directory = File.join(::Rails.root, 'public'))
+    def remove_aggregated_files(base_directory = default_base_directory)
       map = type_and_subpath_to_file_map(base_directory)
       map.values.each do |file|
         if File.exist?(file)
@@ -373,7 +392,26 @@ module AssetAggregator
       end
     end
     
-    def write_aggregated_files(base_directory = File.join(::Rails.root, 'public'))
+    def verify_no_aggregated_files(base_directory = default_base_directory)
+      map = type_and_subpath_to_file_map(base_directory)
+      extra_files = map.values.select { |f| File.exist?(f) }
+      unless extra_files.empty?
+        raise %{STOP. You have pre-aggregated copies of Javascript/CSS/etc. present in public/.
+
+Because Mongrel will always prefer a file in public/ to calling Rails,
+this means you will always run with the pre-aggregated copies, which
+may not be up to date. If you're running in an environment like development
+which should serve up dynamic copies of these files, simply remove them;
+if you're running in an environment like production where having these
+pre-aggregated copies should be OK, you should set
+AssetAggregator.allow_aggregated_files = true.
+
+Files found:
+#{extra_files.join("\n")}}
+      end
+    end
+    
+    def write_aggregated_files(base_directory = default_base_directory)
       require 'fileutils'
       
       map = type_and_subpath_to_file_map(base_directory)

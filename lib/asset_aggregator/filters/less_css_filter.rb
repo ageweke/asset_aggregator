@@ -14,7 +14,13 @@ module AssetAggregator
       
       def filter(input)
         require 'less'
-        Less.parse((@prefix || "") + input)
+        net_input = (@prefix || "") + input
+        
+        begin
+          Less.parse(net_input)
+        rescue => e
+          raise "Unable to process CSS using Less; got: #{e} with input:\n#{net_input}"
+        end
       end
     end
   end

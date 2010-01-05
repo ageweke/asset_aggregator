@@ -1,1 +1,0 @@
-AssetAggregator.write_aggregated_files
