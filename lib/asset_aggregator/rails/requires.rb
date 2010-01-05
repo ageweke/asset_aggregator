@@ -2,8 +2,6 @@ module AssetAggregator
   module Rails
     module Requires
       def asset_aggregator_page_includes(object_to_call_helper_methods_on = self, options = { })
-        # We need to do this to make sure our cache-busting URLs have up-to-date mtimes.
-        AssetAggregator.refresh! if AssetAggregator.refresh_on_each_request
         asset_aggregator_page_reference_set.include_text(object_to_call_helper_methods_on, options)
       end
       

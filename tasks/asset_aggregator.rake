@@ -9,7 +9,7 @@ namespace :asset do
   
     desc "Builds asset_aggregator files for static deployment"
     task :build => :init_rails do
-      AssetAggregator.write_aggregated_files
+      AssetAggregator.write_aggregated_files(true)
     end
   
     desc "Cleans asset_aggregator files from static deployment"

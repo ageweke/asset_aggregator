@@ -171,6 +171,14 @@ module AssetAggregator
       AssetAggregator::OutputHandlers::CommonOutputHandler.on_encryption(&proc)
     end
     
+    def keep_aggregates_on_disk_up_to_date?
+      standard_instance.keep_aggregates_on_disk_up_to_date?
+    end
+
+    def keep_aggregates_on_disk_up_to_date=(x)
+      standard_instance.keep_aggregates_on_disk_up_to_date = x
+    end
+    
     def aggregate(type, output_handler_creator = nil, &definition_proc)
       standard_instance.set_aggregate_type(type, output_handler_creator, definition_proc)
     end
@@ -219,8 +227,8 @@ module AssetAggregator
       standard_instance.refresh!
     end
     
-    def write_aggregated_files(base_dir = File.join(::Rails.root, 'public'))
-      standard_instance.write_aggregated_files(base_dir)
+    def write_aggregated_files(force = false, base_dir = File.join(::Rails.root, 'public'))
+      standard_instance.write_aggregated_files(force, base_dir)
     end
     
     def remove_aggregated_files(base_dir = File.join(::Rails.root, 'public'))
@@ -245,6 +253,7 @@ module AssetAggregator
       @aggregate_types = { }
       @file_cache = AssetAggregator::Core::FileCache.new
       @aggregated_controller_name = 'aggregated'
+      @keep_aggregates_on_disk_up_to_date = false
       
       if ::Rails.env.development?
         @refresh_on_each_request = true
@@ -306,6 +315,14 @@ module AssetAggregator
       
       @aggregate_types[type.to_sym] = AssetAggregator::Core::AggregateType.new(type, @file_cache, output_handler_creator, definition_proc)
       verify_no_aggregated_files unless allow_aggregated_files?
+    end
+    
+    def keep_aggregates_on_disk_up_to_date?
+      @keep_aggregates_on_disk_up_to_date
+    end
+
+    def keep_aggregates_on_disk_up_to_date=(x)
+      @keep_aggregates_on_disk_up_to_date = x
     end
     
     def aggregated_subpaths_for(type, fragment_source_position)
@@ -413,15 +430,19 @@ Files found:
       end
     end
     
-    def write_aggregated_files(base_directory = default_base_directory)
+    def write_aggregated_files(force = false, base_directory = default_base_directory)
       require 'fileutils'
       
       map = type_and_subpath_to_file_map(base_directory)
       map.each do |type_and_subpath, file|
         (type, subpath) = type_and_subpath
-        FileUtils.mkdir_p(File.dirname(file))
-        File.open(file, 'w') { |f| f << content_for(type, subpath)}
-        puts "#{type}: #{subpath} -> #{file}"
+        
+        subpath_mtime = mtime_for(type, subpath)
+        if force || (! File.exist?(file)) || subpath_mtime >= File.mtime(file).to_i
+          FileUtils.mkdir_p(File.dirname(file))
+          File.open(file, 'w') { |f| f << content_for(type, subpath)}
+          puts "#{type}: #{subpath} -> #{file}"
+        end
       end
     end
     
