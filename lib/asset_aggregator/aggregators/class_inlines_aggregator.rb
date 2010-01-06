@@ -1,13 +1,15 @@
 module AssetAggregator
   module Aggregators
     class ClassInlinesAggregator < AssetAggregator::Core::Aggregator
-      def initialize(aggregate_type, file_cache, filters, root, extension_to_method_names_map = nil, file_to_class_proc = nil, &subpath_definition_proc)
+      def initialize(aggregate_type, file_cache, filters, root, options = { }, &subpath_definition_proc)
         super(aggregate_type, file_cache, filters)
-        @extension_to_method_names_map = extension_to_method_names_map
-        @extension_to_method_names_map ||= default_extension_to_method_names_map(aggregate_type)
+        
+        @extension_to_method_names_map = options[:extension_to_method_names_map] || default_extension_to_method_names_map(aggregate_type)
+        @file_to_class_proc = options[:file_to_class_proc] || method(:default_file_to_class)
+        @class_prefix = options[:class_prefix] || ""
+        
         @root = File.expand_path(root)
         @subpath_definition_proc = subpath_definition_proc || method(:default_subpath_definition)
-        @file_to_class_proc = file_to_class_proc || method(:default_file_to_class)
       end
 
       def to_s
@@ -31,7 +33,7 @@ module AssetAggregator
         file_path = file_path[(@root.length + 1)..-1] if file_path[0..(@root.length - 1)].downcase == @root.downcase
         file_path = $1 if file_path =~ /^(.*)\.[^\/]+/
         
-        tries = [ file_path, File.join(File.basename(@root), file_path) ].map { |f| f.camelize }
+        tries = [ file_path, File.join(File.basename(@root), file_path) ].map { |f| @class_prefix + f.camelize }
         tries.each do |try|
           klass = begin
             try.constantize
