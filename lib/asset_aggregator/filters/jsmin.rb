@@ -84,7 +84,7 @@ module AssetAggregator
               if(peek == "/")
                   while(true)
                       c = getc
-                      if (c <= "\n")
+                      if (c == EOF || c <= "\n")
                       return c
                       end
                   end
