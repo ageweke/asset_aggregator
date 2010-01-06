@@ -27,6 +27,7 @@ module AssetAggregator
       end
       
       def default_file_to_class(file_path)
+        full_file_path = file_path.dup
         file_path = file_path[(@root.length + 1)..-1] if file_path[0..(@root.length - 1)].downcase == @root.downcase
         file_path = $1 if file_path =~ /^(.*)\.[^\/]+/
         
@@ -36,6 +37,20 @@ module AssetAggregator
             try.constantize
           rescue LoadError => le
             nil
+          rescue Exception => e
+            raise %{The AssetAggregator is trying to load the class in the file
+'#{full_file_path}',
+in order to see if it has assets (e.g., CSS, Javascript, etc.) inline in its code
+that need to be aggregated.
+
+We loaded the file, and then tried to load the class named #{try}.
+However, this failed. Does the class have a syntax error, is it named wrong,
+or some other issue? The exception we got was:
+
+#{e}
+#{e.backtrace.join("\n")}
+
+}
           end
           
           return klass if klass
