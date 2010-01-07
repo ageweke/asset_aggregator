@@ -87,7 +87,9 @@ module AssetAggregator
         unless data && data[:up_to_date]
           new_mtimes = { }
           start_time = Time.now
-          @filesystem_impl.find(root) { |path| new_mtimes[path] = @filesystem_impl.mtime(path) }
+          if @filesystem_impl.exist?(root)
+            @filesystem_impl.find(root) { |path| new_mtimes[path] = @filesystem_impl.mtime(path) }
+          end
           end_time = Time.now
           
           # Deleted files -- if we don't have a new mtime for it, it doesn't exist;
