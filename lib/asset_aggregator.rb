@@ -479,13 +479,25 @@ Files found:
     end
 
     def net_url(url_for, aggregate_type, action, path, options)
-      url_for.call({
+      base_options = {
         :controller => aggregated_controller_name,
         :action => action.to_s,
         :path => path.split(%r{/+}),
         :format => extension_for(aggregate_type),
-        :only_path => false
-        }.merge(options))
+      }
+      
+      if options[:only_path]
+        url = url_for.call(base_options.merge(options))
+      elsif ActionController::Base.asset_host.blank?
+        base_options[:only_path] = false
+        url = url_for.call(base_options.merge(options))
+      else
+        base_options[:only_path] = true
+        url = url_for.call(base_options.merge(options))
+        url = ActionController::Base.asset_host + url
+      end
+      
+      url
     end
   end
 end
