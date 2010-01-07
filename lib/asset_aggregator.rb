@@ -486,15 +486,18 @@ Files found:
         :format => extension_for(aggregate_type),
       }
       
+      asset_host = ActionController::Base.asset_host
       if options[:only_path]
         url = url_for.call(base_options.merge(options))
-      elsif ActionController::Base.asset_host.blank?
+      elsif (! asset_host) || (asset_host.blank?)
         base_options[:only_path] = false
         url = url_for.call(base_options.merge(options))
       else
         base_options[:only_path] = true
         url = url_for.call(base_options.merge(options))
-        url = ActionController::Base.asset_host + url
+        
+        asset_host = asset_host.call(url) if asset_host.respond_to?(:call)
+        url = asset_host + url
       end
       
       url
