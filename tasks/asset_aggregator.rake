@@ -1,19 +1,14 @@
 namespace :asset do
   namespace :aggregator do
-    task :init_rails do
-      $_asset_aggregator_allow_aggregated_files = true
-    
-      require File.join(::Rails.root, 'config', 'boot')
-      require File.join(::Rails.root, 'config', 'environment')
-    end
-  
     desc "Builds asset_aggregator files for static deployment"
-    task :build => :init_rails do
+    task :build => :environment do
+      $_asset_aggregator_allow_aggregated_files = true
       AssetAggregator.write_aggregated_files(true)
     end
   
     desc "Cleans asset_aggregator files from static deployment"
-    task :clean => :init_rails do
+    task :clean => :environment do
+      $_asset_aggregator_allow_aggregated_files = true
       AssetAggregator.remove_aggregated_files
     end
   end
