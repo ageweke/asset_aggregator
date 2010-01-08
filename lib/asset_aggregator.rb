@@ -493,8 +493,29 @@ Files found:
         base_options[:only_path] = false
         url = url_for.call(base_options.merge(options))
       else
-        base_options[:only_path] = true
-        url = url_for.call(base_options.merge(options))
+        net_options = base_options.merge(options)
+        net_options[:only_path] = true
+        url = url_for.call(net_options)
+        
+        # 2010-01-07 ageweke -- Emergency production issue. It seems like, in certain cases,
+        # url_for is returning an entire URL, not just the path, even when we set
+        # :only_path => true. In this case, we trim it back to a path manually.
+        #
+        # If you're confident that this doesn't happen any more and will not happen, feel
+        # free to remove this code. However, if it *does* happen, all CSS and JS on the site
+        # will be broken, because we'll generate URLs in our include tags like:
+        #
+        #   http://s6.scribdassets.comhttp://www.scribd.com/aggregated/stylesheets/base.css
+        #
+        # ...which obviously doesn't work. So you have been warned. :)
+        if url =~ %r{^https?://}i
+          require 'uri'
+          uri = URI.parse(url)
+          url = uri.path
+          if uri.query && (! uri.query.blank?)
+            url += "?" + uri.query
+          end
+        end
         
         asset_host = asset_host.call(url) if asset_host.respond_to?(:call)
         url = asset_host + url
