@@ -33,10 +33,16 @@ module AssetAggregator
         file_path = file_path[(@root.length + 1)..-1] if file_path[0..(@root.length - 1)].downcase == @root.downcase
         file_path = $1 if file_path =~ /^(.*)\.[^\/]+/
         
+        klass = nil
         tries = [ file_path, File.join(File.basename(@root), file_path) ].map { |f| @class_prefix + f.camelize }
         tries.each do |try|
-          klass = begin
-            try.constantize
+          begin
+            begin
+              klass = try.constantize
+            rescue Exception => e
+              require full_file_path
+              klass = try.constantize
+            end
           rescue LoadError => le
             nil
           rescue Exception => e
@@ -45,9 +51,10 @@ module AssetAggregator
 in order to see if it has assets (e.g., CSS, Javascript, etc.) inline in its code
 that need to be aggregated.
 
-We loaded the file, and then tried to load the class named #{try}.
-However, this failed. Does the class have a syntax error, is it named wrong,
-or some other issue? The exception we got was:
+We either couldn't load the file, or loaded it and then couldn't load the
+class named #{try}.
+Does the class have a syntax error, is it named wrong, or some other issue?
+The exception we got was:
 
 #{e}
 #{e.backtrace.join("\n")}
