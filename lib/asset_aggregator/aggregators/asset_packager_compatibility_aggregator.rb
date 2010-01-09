@@ -13,6 +13,12 @@ module AssetAggregator
         ":asset_packager_compatibility, '#{AssetAggregator::Core::SourcePosition.trim_rails_root(@asset_packager_yml_file)}'"
       end
 
+      def max_mtime_for(subpath)
+        times = [ super(subpath) ]
+        times << @asset_packager_yml_file_mtime.to_i if @asset_packager_yml_file_mtime
+        times.compact.max
+      end
+      
       private
       def fragment_sorting_proc(subpath)
         Proc.new do |fragments|
@@ -34,14 +40,15 @@ module AssetAggregator
       def refresh_fragments_since(last_refresh_fragments_since_time)
         complete_refresh = false
         
-        if (! @fragment_source_file_to_subpaths_map) || (File.exist?(@asset_packager_yml_file) && File.mtime(@asset_packager_yml_file) >= Time.at(last_refresh_fragments_since_time.to_i))
+        @asset_packager_yml_file_mtime = File.mtime(@asset_packager_yml_file)
+        if (! @fragment_source_file_to_subpaths_map) || (File.exist?(@asset_packager_yml_file) && @asset_packager_yml_file_mtime >= Time.at(last_refresh_fragments_since_time.to_i))
           fragment_set.remove_all!
           complete_refresh = true
           read_fragment_source_file_to_subpaths_map
         end
 
         @fragment_source_file_to_subpaths_map.each do |fragment_source_file, subpaths|
-          if (! last_refresh_fragments_since_time) || (! File.exist?(fragment_source_file)) || (File.mtime(fragment_source_file) >= last_refresh_fragments_since_time)
+          if complete_refresh || (! last_refresh_fragments_since_time) || (! File.exist?(fragment_source_file)) || (File.mtime(fragment_source_file) >= last_refresh_fragments_since_time)
             fragment_set.remove_all_for_file(fragment_source_file) unless complete_refresh
             if File.exist?(fragment_source_file)
               fragment_set.add(AssetAggregator::Core::Fragment.new(subpaths, AssetAggregator::Core::SourcePosition.new(fragment_source_file, nil), File.read(fragment_source_file), File.mtime(fragment_source_file)))
