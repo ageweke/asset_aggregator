@@ -95,7 +95,7 @@ module AssetAggregator
           raise "This fragment is not part of this FragmentSet: #{fragment}" unless @fragments.include?(fragment)
           
           content = fragment.content
-          @filters.inject(content) { |content, filter| filter.filter(content) }
+          @filters.inject(content) { |content, filter| filter.filter(fragment, content) }
         end
       end
     end

@@ -24,7 +24,7 @@ module AssetAggregator
         end
       end
       
-      def filter(input)
+      def filter(fragment, input)
         template = ERB.new(input, nil, '-')
         template.result(@binding)
       end

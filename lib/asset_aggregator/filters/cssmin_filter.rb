@@ -3,7 +3,7 @@ module AssetAggregator
     # A #Filter that uses the same algorithm that the asset_packager
     # (http://synthesis.sbecker.net/pages/asset_packager) uses to compress CSS.
     class CssminFilter < AssetAggregator::Core::Filter
-      def filter(input)
+      def filter(fragment, input)
         input = input.dup
         input.gsub!(/\s+/, " ")           # collapse space
         input.gsub!(/\} /, "}\n")         # add line breaks

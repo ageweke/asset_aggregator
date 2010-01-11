@@ -12,7 +12,7 @@ module AssetAggregator
         @prefix += "\n" unless @prefix.blank? || @prefix[-1..-1] == "\n"
       end
       
-      def filter(input)
+      def filter(fragment, input)
         require 'less'
         net_input = (@prefix || "") + input
         

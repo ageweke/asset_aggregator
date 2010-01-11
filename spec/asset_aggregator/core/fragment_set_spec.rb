@@ -160,23 +160,23 @@ describe AssetAggregator::Core::FragmentSet do
   it "should yield the right content from #filtered_content_from" do
     @fragment_set.add(@fragment_1)
     
-    @filter1.should_receive(:filter).with("some content here").and_return("filter1 output")
-    @filter2.should_receive(:filter).with("filter1 output").and_return("filter2 output")
+    @filter1.should_receive(:filter).with(@fragment_1, "some content here").and_return("filter1 output")
+    @filter2.should_receive(:filter).with(@fragment_1, "filter1 output").and_return("filter2 output")
     @fragment_set.filtered_content_from(@fragment_1).should == "filter2 output"
   end
   
   it "should not incorrectly cache #filtered_content_from" do
     @fragment_set.add(@fragment_1)
     
-    @filter1.should_receive(:filter).with("some content here").and_return("filter1 output")
-    @filter2.should_receive(:filter).with("filter1 output").and_return("filter2 output")
+    @filter1.should_receive(:filter).with(@fragment_1, "some content here").and_return("filter1 output")
+    @filter2.should_receive(:filter).with(@fragment_1, "filter1 output").and_return("filter2 output")
     @fragment_set.filtered_content_from(@fragment_1).should == "filter2 output"
     
     @fragment_set.remove { |f| true }
     @fragment_set.add(@fragment_1)
     
-    @filter1.should_receive(:filter).with("some content here").and_return("filter1 new output")
-    @filter2.should_receive(:filter).with("filter1 new output").and_return("filter2 new output")
+    @filter1.should_receive(:filter).with(@fragment_1, "some content here").and_return("filter1 new output")
+    @filter2.should_receive(:filter).with(@fragment_1, "filter1 new output").and_return("filter2 new output")
     
     @fragment_set.filtered_content_from(@fragment_1).should == "filter2 new output"
   end

@@ -252,7 +252,7 @@ module AssetAggregator
     def initialize
       @aggregate_types = { }
       @file_cache = AssetAggregator::Core::FileCache.new
-      @aggregated_controller_name = 'aggregated'
+      @aggregated_controller_name = '/aggregated'
       @keep_aggregates_on_disk_up_to_date = false
       
       if ::Rails.env.development?

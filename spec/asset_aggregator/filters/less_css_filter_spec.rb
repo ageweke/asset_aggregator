@@ -4,7 +4,8 @@ require 'spec/spec_helper'
 # for the specs in less itself. 
 describe AssetAggregator::Filters::LessCssFilter do
   def filter(input, prefix = nil)
-    AssetAggregator::Filters::LessCssFilter.new(prefix).filter(input)
+    fragment = mock(:fragment)
+    AssetAggregator::Filters::LessCssFilter.new(prefix).filter(fragment, input)
   end
   
   it "should process input through less" do

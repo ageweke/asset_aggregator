@@ -4,7 +4,7 @@ module AssetAggregator
     # filter JavaScript code according to Douglas Crockford's jsmin.c
     # implementation.
     class JsminFilter < AssetAggregator::Core::Filter
-      def filter(input)
+      def filter(fragment, input)
         AssetAggregator::Filters::Jsmin.convert(input)
       end
     end
