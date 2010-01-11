@@ -440,8 +440,11 @@ Files found:
         subpath_mtime = mtime_for(type, subpath)
         if force || (! File.exist?(file)) || subpath_mtime >= File.mtime(file).to_i
           FileUtils.mkdir_p(File.dirname(file))
+          start_time = Time.now
           File.open(file, 'w') { |f| f << content_for(type, subpath)}
-          puts "#{type}: #{subpath} -> #{file}"
+          terse_file = file
+          terse_file = terse_file[(::Rails.root.length + 1)..-1] if terse_file.length > (::Rails.root.length + 2) && terse_file[0..(::Rails.root.length - 1)] == ::Rails.root
+          puts "[%.2fs] AssetAggregator build '#{subpath}' (to '#{terse_file}')" % (Time.now - start_time)
         end
       end
     end
