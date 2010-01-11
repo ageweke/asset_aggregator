@@ -34,4 +34,17 @@ describe AssetAggregator::Filters::LessCssFilter do
     processing_calls[1][2].should >= 0
     processing_calls[1][2].should <= 0.2
   end
+  
+  it "should call the :runner proc, if supplied" do
+    runner_calls = [ ]
+    runner_proc = Proc.new do |fragment, net_input|
+      runner_calls << [ fragment, net_input ]
+      "XXX#{net_input}YYY"
+    end
+    
+    filter(".foo { .bar { color: red } }", :runner => runner_proc).strip.should == "XXX.foo { .bar { color: red } }YYY"
+    runner_calls.length.should == 1
+    runner_calls[0][0].should == @fragment
+    runner_calls[0][1].should == ".foo { .bar { color: red } }"
+  end
 end
