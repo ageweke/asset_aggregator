@@ -3,7 +3,7 @@ require 'spec/spec_helper'
 describe AssetAggregator::Filters::ErbFilter do
   before :each do
     @variables = { :foo => 'bar', :bar => 123, :baz => 456 }
-    @filter = AssetAggregator::Filters::ErbFilter.new(@variables)
+    @filter = AssetAggregator::Filters::ErbFilter.new(:binding => @variables)
     @fragment = mock(:fragment)
   end
   
@@ -24,7 +24,7 @@ describe AssetAggregator::Filters::ErbFilter do
     struct.x = 123
     struct.y = 456
     
-    filter = AssetAggregator::Filters::ErbFilter.new(struct.send(:binding))
+    filter = AssetAggregator::Filters::ErbFilter.new(:binding => struct.send(:binding))
     filter.filter(@fragment, "<%= x %> + <%= y %> = <%= x + y %>").should == "123 + 456 = 579"
   end
   
@@ -33,7 +33,7 @@ describe AssetAggregator::Filters::ErbFilter do
     struct.x = 123
     struct.y = 456
     
-    filter = AssetAggregator::Filters::ErbFilter.new(struct)
+    filter = AssetAggregator::Filters::ErbFilter.new(:binding => struct)
     filter.filter(@fragment, "<%= x %> + <%= y %> = <%= x + y %>").should == "123 + 456 = 579"
   end
   
@@ -46,5 +46,24 @@ describe AssetAggregator::Filters::ErbFilter do
     filter = AssetAggregator::Filters::ErbFilter.new
     filter.filter(@fragment, "<%= 1 + 2 %>\n<%= 3 + 4 %>").should == "3\n7"
     filter.filter(@fragment, "<%= 1 + 2 -%>\n<%= 3 + 4 %>").should == "37"
+  end
+  
+  it "should call :binding_proc if supplied" do
+    binding_proc_calls = [ ]
+    binding_proc = Proc.new do |fragment, input|
+      binding_proc_calls << [ fragment, input ]
+      { :bar => 333, :baz => 444 }
+    end
+    
+    filter = AssetAggregator::Filters::ErbFilter.new(:binding_proc => binding_proc)
+    filter.filter(@fragment, "<%= bar + baz %>").should == "777"
+    binding_proc_calls.length.should == 1
+    binding_proc_calls[0][0].should == @fragment
+    binding_proc_calls[0][1].should == "<%= bar + baz %>"
+    
+    filter.filter(@fragment, "<%= baz - bar %>").should == "111"
+    binding_proc_calls.length.should == 2
+    binding_proc_calls[1][0].should == @fragment
+    binding_proc_calls[1][1].should == "<%= baz - bar %>"
   end
 end
