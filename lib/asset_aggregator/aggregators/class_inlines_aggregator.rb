@@ -40,7 +40,7 @@ module AssetAggregator
             begin
               klass = try.constantize
             rescue Exception => e
-              require full_file_path
+              load full_file_path
               klass = try.constantize
             end
           rescue LoadError => le
