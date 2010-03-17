@@ -17,6 +17,16 @@ module AssetAggregator
       #      under the given +root+, and returns a value that evaluates to
       #      true or false depending on whether file should be included in the
       #      aggregate or not.
+      # * +options+ can contain any of the following:
+      #    * +:exclude_directories+ -- if present, will be passed directly to
+      #      FileCache#changed_files_since, as its +prunes+ argument. That is,
+      #      any directories listed here that are underneath the +root+ will
+      #      get skipped over, and files in them will not get aggregated.
+      #    * +:delay_read+ -- if true, will cause this aggregator to _not_ read
+      #      content eagerly when found, and instead simply add #Fragment objects
+      #      without content. This is useful for image spriting, where we don't
+      #      want to read #Fragment objects' content, but rather just keep
+      #      track of where it is on the filesystem.
       # * +subpath_definition_proc+ (the block passed to this constructor), if
       #      present, will get called once for each file that gets included in
       #      this aggregate. It gets passed both the absolute path of the file
@@ -44,12 +54,13 @@ module AssetAggregator
       #
       # As always, files tagged with an explicit subpath will use that subpath,
       # no matter what.
-      def initialize(aggregate_type, file_cache, filters, root, inclusion_proc = nil, &subpath_definition_proc)
+      def initialize(aggregate_type, file_cache, filters, root, inclusion_proc = nil, options = nil, &subpath_definition_proc)
         super(aggregate_type, file_cache, filters)
         
         @root = root
         @inclusion_proc = normalize_inclusion_proc(inclusion_proc)
         @subpath_definition_proc = subpath_definition_proc || method(:default_subpath_definition)
+        @options = options || { }
       end
 
       # A nice human-readable description.
@@ -62,14 +73,14 @@ module AssetAggregator
       # Uses the #FileCache to go look out at its +root+, and pulls in content
       # from each file that has changed.
       def refresh_fragments_since(last_refresh_fragments_since_time)
-        @file_cache.changed_files_since(@root, last_refresh_fragments_since_time).each do |changed_file|
+        @file_cache.changed_files_since(@root, last_refresh_fragments_since_time, @options[:exclude_directories] || [ ]).each do |changed_file|
           next if File.basename(changed_file) =~ /^\./ || @filesystem_impl.directory?(changed_file) || (! @inclusion_proc.call(changed_file))
           
           fragment_set.remove_all_for_file(changed_file)
           if @filesystem_impl.exist?(changed_file)
-            content = @filesystem_impl.read(changed_file)
+            content = @filesystem_impl.read(changed_file) unless @options[:delay_read]
             target_subpaths = Array(@subpath_definition_proc.call(changed_file, content))
-            target_subpaths = update_with_tagged_subpaths(changed_file, content, target_subpaths)
+            target_subpaths = update_with_tagged_subpaths(changed_file, content, target_subpaths) if content
             
             fragment_set.add(AssetAggregator::Core::Fragment.new(target_subpaths, AssetAggregator::Core::SourcePosition.new(changed_file, nil), content, @filesystem_impl.mtime(changed_file)))
           end

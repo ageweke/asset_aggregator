@@ -1,7 +1,10 @@
 require 'spec/spec_helper'
 require File.dirname(__FILE__) + '/../test_filesystem_impl'
+require File.dirname(__FILE__) + '/aggregator_spec_helper_methods'
 
 describe AssetAggregator::Aggregators::FilesAggregator do
+  include AssetAggregator::Aggregators::AggregatorSpecHelperMethods
+  
   before :each do
     @aggregate_type = mock(:aggregate_type)
     @file_cache = mock(:file_cache)
@@ -11,35 +14,15 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     @root = File.join(::Rails.root, 'app', 'views')
   end
   
-  def make(root, include_proc = nil, &subpath_definition_proc)
-    out = AssetAggregator::Aggregators::FilesAggregator.new(@aggregate_type, @file_cache, @filters, root, include_proc, &subpath_definition_proc)
+  def make(root, include_proc = nil, options = nil, &subpath_definition_proc)
+    out = AssetAggregator::Aggregators::FilesAggregator.new(@aggregate_type, @file_cache, @filters, root, include_proc, options, &subpath_definition_proc)
     out.filesystem_impl = @filesystem_impl
     out
   end
   
-  def fragments_from(aggregator, subpath)
-    fragments = [ ]
-    aggregator.each_fragment_for(subpath) { |f| fragments << f }
-    fragments
-  end
-  
-  def check_fragments(aggregator, subpath, expected_fragments)
-    actual_fragments = fragments_from(aggregator, subpath)
-    actual_fragments.length.should == expected_fragments.length
-    actual_fragments.each_with_index do |actual_fragment, index|
-      expected_fragment = expected_fragments[index]
-      
-      actual_fragment.target_subpaths.should == expected_fragment[:target_subpaths]
-      actual_fragment.source_position.file.should == expected_fragment[:file]
-      actual_fragment.source_position.line.should == expected_fragment[:line]
-      actual_fragment.content.should == expected_fragment[:content]
-      actual_fragment.mtime.should == expected_fragment[:mtime] if expected_fragment[:mtime]
-    end
-  end
-  
   it "should return a single file's fragment" do
     path = File.join(@root, 'foo', 'bar.css')
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path ])
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil, [ ]).and_return([ path ])
     @filesystem_impl.set_content(path, 'hidey ho')
     mtime = 1262120245
     @filesystem_impl.set_mtime(path, mtime)
@@ -55,7 +38,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
   it "should not return dotfiles" do
     path1 = File.join(@root, 'foo', 'bar.css')
     path2 = File.join(@root, 'foo', '.bonk.css')
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path1, path2 ])
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil, [ ]).and_return([ path1, path2 ])
     @filesystem_impl.set_content(path1, 'path1 content')
     
     aggregator = make(@root)
@@ -68,12 +51,24 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     path1 = File.join(@root, 'foo', 'bar.css')
     path2 = File.join(@root, 'foo')
     path3 = File.join(@root, 'foo', 'baz')
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path1, path2, path3 ])
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil, [ ]).and_return([ path1, path2, path3 ])
     @filesystem_impl.set_content(path1, 'path1 content')
     @filesystem_impl.set_directory(path2)
     @filesystem_impl.set_directory(path3)
     
     aggregator = make(@root)
+    check_fragments(aggregator, 'foo', [
+      { :target_subpaths => [ 'foo' ], :file => path1, :line => nil, :content => 'path1 content' }
+    ])
+  end
+  
+  it "should pass along :exclude_directories to the file cache" do
+    path1 = File.join(@root, 'foo', 'bar.css')
+    path2 = File.join(@root, 'bar', 'baz.css')
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil, [ 'bar' ]).and_return([ path1 ])
+    @filesystem_impl.set_content(path1, 'path1 content')
+    
+    aggregator = make(@root, nil, { :exclude_directories => [ 'bar' ] })
     check_fragments(aggregator, 'foo', [
       { :target_subpaths => [ 'foo' ], :file => path1, :line => nil, :content => 'path1 content' }
     ])
@@ -87,7 +82,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       @mtime1 = 1262120245
       @mtime2 = 1262120248
       @mtime3 = 1262120267
-      @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ @path1, @path2, @path3 ])
+      @file_cache.should_receive(:changed_files_since).once.with(@root, nil, [ ]).and_return([ @path1, @path2, @path3 ])
       @filesystem_impl.set_content(@path1, 'path1 content')
       @filesystem_impl.set_content(@path2, 'path2 content')
       @filesystem_impl.set_content(@path3, 'path3 content')
@@ -105,6 +100,17 @@ describe AssetAggregator::Aggregators::FilesAggregator do
       ])
       check_fragments(@aggregator, 'quux', [
         { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content', :mtime => @mtime3 }
+      ])
+    end
+    
+    it "should not pull in content when asked not to" do
+      @aggregator = make(@root, nil, { :delay_read => true })
+      check_fragments(@aggregator, 'foo', [
+        { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => nil, :mtime => @mtime1 },
+        { :target_subpaths => [ 'foo' ], :file => @path2, :line => nil, :content => nil, :mtime => @mtime2 }
+      ])
+      check_fragments(@aggregator, 'quux', [
+        { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => nil, :mtime => @mtime3 }
       ])
     end
   
@@ -130,7 +136,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     
       # We don't need to check the time passed to #changed_files_since; that's checked
       # by the spec for #Aggregator.
-      @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_return([ @path1, @path3 ])
+      @file_cache.should_receive(:changed_files_since).once.with(@root, anything(), [ ]).and_return([ @path1, @path3 ])
       @aggregator.refresh!
       check_fragments(@aggregator, 'foo', [
         { :target_subpaths => [ 'foo' ], :file => @path1, :line => nil, :content => 'path1 content new' },
@@ -150,7 +156,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
         { :target_subpaths => [ 'quux' ], :file => @path3, :line => nil, :content => 'path3 content' }
       ])
       
-      @file_cache.should_receive(:changed_files_since).once.with(@root, anything()).and_return([ @path2 ])
+      @file_cache.should_receive(:changed_files_since).once.with(@root, anything(), [ ]).and_return([ @path2 ])
       @filesystem_impl.set_does_not_exist(@path2, true)
       @aggregator.refresh!
       
@@ -270,7 +276,7 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     @root = File.join(File.dirname(::Rails.root), 'somewhere', 'else')
     path = File.join(@root, 'foo', 'bar.css')
     
-    @file_cache.should_receive(:changed_files_since).once.with(@root, nil).and_return([ path ])
+    @file_cache.should_receive(:changed_files_since).once.with(@root, nil, [ ]).and_return([ path ])
     @filesystem_impl.set_content(path, 'hidey ho')
     
     aggregator = make(@root)
