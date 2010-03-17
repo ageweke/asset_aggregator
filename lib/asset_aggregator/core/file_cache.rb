@@ -56,7 +56,7 @@ module AssetAggregator
       # #changed_files_since, we'll go hit the filesystem again instead of just
       # using data from memory.
       def refresh!
-        @roots.keys.each { |root| @roots[root].delete(:up_to_date) }
+        @roots.keys.each { |key| @roots[key].delete(:up_to_date) }
       end
       
       # Returns an array containing the fully-qualified paths of all files underneath
@@ -80,15 +80,24 @@ module AssetAggregator
       # YOU ARE WARNED: unless you have called #refresh! on this object, new changes
       # will NOT be picked up by this method. This is part of the whole point, as
       # it makes it much more efficient.
-      def changed_files_since(root, time)
+      def changed_files_since(root, time, prunes = [ ])
+        prunes = prunes.map { |p| File.expand_path(p) }
+        
         root = File.expand_path(root)
-        data = @roots[root]
+        key = key_for(root, prunes)
+        data = @roots[key]
     
         unless data && data[:up_to_date]
           new_mtimes = { }
           start_time = Time.now
           if @filesystem_impl.exist?(root)
-            @filesystem_impl.find(root) { |path| new_mtimes[path] = @filesystem_impl.mtime(path) }
+            @filesystem_impl.find(root) do |path|
+              if prunes.detect { |p| File.expand_path(path)[0..(p.length - 1)] == p }
+                @filesystem_impl.prune
+              else
+                new_mtimes[path] = @filesystem_impl.mtime(path)
+              end
+            end
           end
           end_time = Time.now
           
@@ -99,8 +108,8 @@ module AssetAggregator
           end
           
           data = new_mtimes
-          @roots[root] = data
-          @roots[root][:up_to_date] = true
+          @roots[key] = data
+          @roots[key][:up_to_date] = true
         end
         
         file_list = data.keys - [ :up_to_date ]
@@ -110,6 +119,11 @@ module AssetAggregator
         end
         
         file_list
+      end
+      
+      private
+      def key_for(root, prunes = [ ])
+        [ root, prunes ]
       end
     end
   end

@@ -28,6 +28,14 @@ describe AssetAggregator::Core::FileCache do
       @fsimpl.find_calls.should == [ '/root1' ]
     end
     
+    it "should prune any directories specified" do
+      @fsimpl.set_find_yields([ '/root1/foo', '/root1/bar', '/root1/baz/quux' ])
+      @cache.changed_files_since('/root1', nil, [ '/root1/bar' ]).sort.should == [ '/root1/baz/quux', '/root1/foo' ]
+      @fsimpl.prune_calls.should == [ '/root1/bar' ]
+      @fsimpl.mtime_calls.should == [ '/root1/foo', '/root1/baz/quux' ]
+      @fsimpl.find_calls.should == [ '/root1' ]
+    end
+    
     it "should not hit the filesystem again if #refresh has not been called" do
       @cache.changed_files_since('/root1', BASE_TIME).sort.should == [ '/root1/bar', '/root1/baz/quux' ]
       @fsimpl.mtime_calls.should == [ '/root1/foo', '/root1/bar', '/root1/baz/quux' ]
@@ -174,6 +182,32 @@ describe AssetAggregator::Core::FileCache do
       @cache.changed_files_since('/root1', BASE_TIME).sort.should == [ '/root1/bar', '/root1/baz/quux' ]
       @fsimpl.mtime_calls.should == [ ]
       @fsimpl.find_calls.should == [ ]
+    end
+
+    it "should keep a root and the same root, pruned, entirely separate" do
+      @cache.changed_files_since('/root1', nil, [ '/root1/foo' ]).sort.should == [ '/root1/bar', '/root1/baz/quux' ]
+      @fsimpl.mtime_calls.should == [ '/root1/bar', '/root1/baz/quux' ]
+      @fsimpl.find_calls.should == [ '/root1' ]
+      @fsimpl.prune_calls.should == [ '/root1/foo' ]
+      
+      @fsimpl.clear_calls!
+      @fsimpl.set_find_yields([ '/root1/aaa', '/root1/bbb', '/root1/ccc' ])
+      @cache.changed_files_since('/root1', nil, [ '/root1/bbb' ]).sort.should == [ '/root1/aaa', '/root1/ccc' ]
+      @fsimpl.mtime_calls.should == [ '/root1/aaa', '/root1/ccc' ]
+      @fsimpl.find_calls.should == [ '/root1' ]
+      @fsimpl.prune_calls.should == [ '/root1/bbb' ]
+      
+      @fsimpl.clear_calls!
+      @cache.changed_files_since('/root1', nil, [ '/root1/foo' ]).sort.should == [ '/root1/bar', '/root1/baz/quux' ]
+      @fsimpl.mtime_calls.should == [ ]
+      @fsimpl.find_calls.should == [ ]
+      @fsimpl.prune_calls.should == [ ]
+
+      @fsimpl.clear_calls!
+      @cache.changed_files_since('/root1', nil, [ '/root1/bbb' ]).sort.should == [ '/root1/aaa', '/root1/ccc' ]
+      @fsimpl.mtime_calls.should == [ ]
+      @fsimpl.find_calls.should == [ ]
+      @fsimpl.prune_calls.should == [ ]
     end
   end
 end
