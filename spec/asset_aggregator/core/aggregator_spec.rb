@@ -118,6 +118,7 @@ describe AssetAggregator::Core::Aggregator do
     mtime = Time.now.to_i - 123456
     @test_fragment_set.should_receive(:max_mtime_for).once.with('foo/bar').and_return(mtime)
     @aggregator.max_mtime_for('foo/bar').should == mtime
+    @aggregator.refresh_fragments_since_calls.should == [ nil ]
   end
   
   it "should return a nil mtime if that's what the fragment set returns" do

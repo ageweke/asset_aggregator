@@ -5,8 +5,8 @@ module AssetAggregator
     # Different Aggregators will have different strategies
     # for doing this; for example, the #FilesAggregator just bundles
     # together a particular set of files or directories, while the 
-    # #AssetPackagerYmlAggregator looks at an asset_packager-style YML file
-    # and pulls data from there. 
+    # #AssetPackagerCompatibilityAggregator looks at an asset_packager-style
+    # YML file and pulls data from there. 
     class Aggregator
       # Creates a new instance. +file_cache+
       # is the #FileCache that this Aggregator should use if it needs to
@@ -32,6 +32,7 @@ module AssetAggregator
       # format) for any of the fragments in this #Aggregator that map to the
       # given +subpath+. Used to generate cache-busting URLs.
       def max_mtime_for(subpath)
+        ensure_loaded!
         fragment_set.max_mtime_for(subpath)
       end
       
@@ -79,6 +80,9 @@ module AssetAggregator
         fragment_set.each_fragment_for(subpath, fragment_sorting_proc(subpath), &proc)
       end
       
+      # The default #Proc used to sort #Fragment objects for the given
+      # +subpath+. Used for things like the #AssetPackagerCompatibilityAggregator,
+      # which needs to output its files in a particular order.
       def fragment_sorting_proc(subpath)
         nil
       end
