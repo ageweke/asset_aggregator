@@ -4,7 +4,8 @@ describe AssetAggregator::Filters::ErbFilter do
   before :each do
     @variables = { :foo => 'bar', :bar => 123, :baz => 456 }
     @filter = AssetAggregator::Filters::ErbFilter.new(:binding => @variables)
-    @fragment = mock(:fragment)
+    @source_position = mock(:source_position, :to_s => 'hoohah')
+    @fragment = mock(:fragment, :source_position => @source_position)
   end
   
   it "should pass through normal text without a problem" do
@@ -13,6 +14,16 @@ describe AssetAggregator::Filters::ErbFilter do
   
   it "should run ERb commands" do
     @filter.filter(@fragment, "2 + 2 = <%= 2 + 2 %>").should == "2 + 2 = 4"
+  end
+  
+  class MyError < StandardError; end
+  
+  it "should raise errors, with information about where they came from" do
+    lambda { @filter.filter(@fragment, "this is <%= raise(MyError, 'kaboomba') %>") }.should raise_error(RuntimeError, /hoohah.*kaboomba.*MyError/m)
+  end
+  
+  it "should raise syntax errors, with information about where they came from" do
+    lambda { @filter.filter(@fragment, "this is <%= blah blah + + * 24 %>") }.should raise_error(RuntimeError, /SyntaxError/m)
   end
 
   it "should run ERb commands with variables" do

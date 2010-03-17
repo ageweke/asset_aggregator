@@ -27,9 +27,12 @@ module AssetAggregator
       
       def filter(fragment, input)
         binding = to_binding(@binding_proc.call(fragment, input))
-        
         template = ERB.new(input, nil, '-')
-        template.result(binding)
+        begin
+          template.result(binding)
+        rescue Exception => e
+          raise "Unable to process data from fragment at #{fragment.source_position} with ERb; got an exception:\n\n#{e} (#{e.class.name})\n#{e.backtrace.join("\n")}\n\n"
+        end
       end
       
       private
