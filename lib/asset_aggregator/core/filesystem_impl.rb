@@ -40,6 +40,11 @@ module AssetAggregator
       def exist?(path)
         File.exist?(path)
       end
+      
+      # Behaves the same as Find#prune
+      def prune
+        Find.prune
+      end
     end
   end
 end

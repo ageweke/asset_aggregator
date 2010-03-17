@@ -1,7 +1,7 @@
 module AssetAggregator
   # A mock FilesystemImpl, for use in tests.
   class TestFilesystemImpl
-    attr_reader :mtime_calls, :find_calls, :canonical_path_calls, :directory_calls, :read_calls, :exist_calls
+    attr_reader :mtime_calls, :find_calls, :canonical_path_calls, :directory_calls, :read_calls, :exist_calls, :prune_calls
   
     def initialize
       @find_returns = [ ]
@@ -35,7 +35,8 @@ module AssetAggregator
     def find(root)
       @find_calls << root
       yields = @find_returns.shift
-      yields.each { |y| yield y }
+      yields.each { |y| @current_find_path = y; yield y }
+      @current_find_path = nil
     end
     
     def set_canonical_path(path, canonical_path)
@@ -56,6 +57,10 @@ module AssetAggregator
       @directories.include?(path)
     end
     
+    def prune
+      @prune_calls << @current_find_path
+    end
+    
     def set_content(path, content)
       @content[path] = content
     end
@@ -72,6 +77,7 @@ module AssetAggregator
       @directory_calls = [ ]
       @read_calls = [ ]
       @exist_calls = [ ]
+      @prune_calls = [ ]
     end
     
     def set_does_not_exist(path, does_not_exist)
