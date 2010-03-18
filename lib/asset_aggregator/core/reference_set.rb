@@ -1,7 +1,7 @@
 module AssetAggregator
   module Core
     # A #ReferenceSet is a collection of #FragmentReference or #AggregateReference
-    # objects. It's used  to implement reference tracking on a per-page basis: a
+    # objects. It's used to implement reference tracking on a per-page basis: a
     # single instance of this class (actually, #FreezableReferenceSet) is created
     # and used by the #PageReferenceSet on each request. As controller methods are
     # called and views are rendered, references can be added to this object -- 
@@ -26,14 +26,16 @@ module AssetAggregator
     # ===========
     # This class needs to be fast -- in particular, #each_aggregate_reference needs
     # to run fast, because it is called from the #PageReferenceSet and can thus be
-    # invoked from every single page in a Rails application. 
+    # invoked from every single page in an application. 
     #
     # The spec for this class tests as much. Be careful.
     class ReferenceSet
       DEBUG = false # for debugging the #best_fit algorithm
       
-      # Creates a new, empty instance.
-      def initialize
+      # Creates a new, empty instance. +integration+ is the #Integration object we
+      # should use for various things.
+      def initialize(integration)
+        @integration = integration
         @references = [ ]
       end
       
@@ -98,12 +100,17 @@ module AssetAggregator
         end
         
         @subpaths_and_references.each { |(subpath, references)| block.call(subpath, references) }
-        @subpaths_and_references = nil
+        nil
       end
       
       private
       def debug(s)
-        puts s if DEBUG
+        @integration.debug(s) if DEBUG
+      end
+      
+      # Returns the #Integration object we should use.
+      def integration
+        @integration
       end
       
       # Given an #Array of reference objects, returns a #Hash that maps each reference to

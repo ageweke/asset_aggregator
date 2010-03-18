@@ -2,7 +2,8 @@ require 'spec/spec_helper'
 
 describe AssetAggregator::Core::FreezableReferenceSet do
   before :each do
-    @set = AssetAggregator::Core::FreezableReferenceSet.new
+    @integration = mock(:integration)
+    @set = AssetAggregator::Core::FreezableReferenceSet.new(@integration)
     @asset_aggregator = mock(:asset_aggregator)
   end
   
@@ -23,6 +24,7 @@ describe AssetAggregator::Core::FreezableReferenceSet do
     @set.each_aggregate_reference(:foo, @asset_aggregator) { |subpath, references| }
     
     ref2 = make_ref(:foo, 'bar', 'bonk', 'something else')
+    @integration.should_receive(:warn).with(anything).once
     @set.add(ref2)
   end
   

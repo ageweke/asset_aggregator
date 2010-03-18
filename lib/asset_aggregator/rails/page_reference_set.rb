@@ -1,8 +1,17 @@
 module AssetAggregator
   module Rails
     class PageReferenceSet
-      def initialize
-        @reference_set = AssetAggregator::Core::FreezableReferenceSet.new
+      def initialize(asset_aggregator)
+        @asset_aggregator = asset_aggregator
+        @reference_set = AssetAggregator::Core::FreezableReferenceSet.new(integration)
+      end
+      
+      def asset_aggregator
+        @asset_aggregator
+      end
+      
+      def integration
+        @asset_aggregator.integration
       end
       
       def require_fragment(aggregate_type, fragment_file, source_position = nil, descrip = nil)

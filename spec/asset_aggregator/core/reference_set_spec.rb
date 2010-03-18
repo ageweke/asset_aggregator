@@ -2,7 +2,8 @@ require 'spec/spec_helper'
 
 describe AssetAggregator::Core::ReferenceSet do
   before :each do
-    @reference_set = AssetAggregator::Core::ReferenceSet.new
+    @integration = mock(:integration)
+    @reference_set = AssetAggregator::Core::ReferenceSet.new(@integration)
     @ref1 = make_ref(:foo, 'bar', 'baz', 'bonk')
   end
   
@@ -13,6 +14,10 @@ describe AssetAggregator::Core::ReferenceSet do
       AssetAggregator::Core::SourcePosition.new(reference_source_position_file, nil),
       descrip
     )
+  end
+  
+  it "should return its components correctly" do
+    @reference_set.send(:integration).should == @integration
   end
   
   it "should not add duplicate references" do
@@ -118,7 +123,7 @@ describe AssetAggregator::Core::ReferenceSet do
         [ @r1, @r2, @r3, @r4, @r5, @r6, @r7, @r8, @r9 ].each { |r| @reference_set.add(r) }
         
         start_time = Time.now
-        100.times do
+        50.times do
           @reference_set.each_aggregate_reference(:foo, mock(:asset_aggregator)) { |subpath, references| }
         end
         end_time = Time.now

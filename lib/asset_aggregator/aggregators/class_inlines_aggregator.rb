@@ -24,12 +24,12 @@ module AssetAggregator
       #      the Class object that that file represents, or raise an exception if it
       #      can't be loaded. This is necessary because, while there are conventions
       #      that map filename -> class name in Rails, it is not guaranteed. By default,
-      #      we assume Rails conventions -- so +<root>/foo/bar/baz.rb+ should, when
+      #      we assume Rails-style conventions -- so +<root>/foo/bar/baz.rb+ should, when
       #      loaded, let us use +Foo::Bar::Baz+. We additionally allow the root itself
       #      to be used as a prefix, since a common case is having +app/views+ be the
       #      root, and using Erector widgets; to avoid namespace collisions, an
       #      Erector widget in +app/views/foo/bar/baz.rb+ defines a class named
-      #      +Views::Foo::Bar::Baz+.
+      #      +Views::Foo::Bar::Baz+, not just +Foo::Bar::Baz+.
       #    * +class_prefix+: Only applicable if +file_to_class_proc+ is not specified.
       #      The supplied prefix wil be prepended to all class names before we try
       #      to locate them; this lets you specify, e.g., +app/views/foo/bar+ as your
@@ -71,12 +71,12 @@ module AssetAggregator
       
       # A nice human-readable description.
       def to_s
-        ":class_inlines, \'#{AssetAggregator::Core::SourcePosition.trim_rails_root(@root)}\', ..."
+        ":class_inlines, \'#{integration.base_relative_path(@root)}\', ..."
       end
 
       private
       # The default method we use if no +:file_to_class_proc+ is supplied to the constructor.
-      # Simply uses Rails' naming conventions to map file to class name; the vast majority of
+      # Simply uses Rails-style naming conventions to map file to class name; the vast majority of
       # this time, this works fine. See the comment in the constructor for more details.
       def default_file_to_class(file_path)
         full_file_path = file_path.dup

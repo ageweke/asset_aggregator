@@ -17,16 +17,24 @@ module AssetAggregator
       
       # Creates a new instance. +asset_packager_yml_file+ specifies the YAML file of
       # assets to aggregate; it defaults to +config/asset_packages.yml+, as per the
-      # asset packager.
-      def initialize(aggregate_type, file_cache, filters, asset_packager_yml_file = nil)
+      # asset packager, relative to the integration base path. +component_source_proc+,
+      # if specified, must return the path we should use for a given listed source
+      # file in the YAML file; it gets passed the type of asset, and the filename
+      # of the source file (without extension, just as specified in the YAML file).
+      # For example, if passed +:javascripts+ and +foo/bar+, it might return
+      #   File.join(Rails.root, 'public', 'javascripts', 'foo', 'bar.js')
+      # ...which is exactly what the default implementation does, which mimics the
+      # behavior of the Asset Packager exactly.
+      def initialize(aggregate_type, file_cache, filters, asset_packager_yml_file = nil, component_source_proc = nil)
         super(aggregate_type, file_cache, filters)
-        @asset_packager_yml_file = asset_packager_yml_file || File.join(::Rails.root, 'config', 'asset_packages.yml')
-        raise Errno::ENOENT, "No asset-packager YML file found at '#{@asset_packager_yml_file}'" unless @filesystem_impl.exist?(@asset_packager_yml_file)
+        @asset_packager_yml_file = asset_packager_yml_file || integration.path_from_base('config', 'asset_packages.yml')
+        @component_source_proc = component_source_proc || method(:default_component_source_proc)
+        raise "You can't supply a subpath definition proc to the #{self.class.name}; subpaths are defined by the YAML file, directly" if block_given?
       end
       
       # A nice human-readable string.
       def to_s
-        ":asset_packager_compatibility, '#{AssetAggregator::Core::SourcePosition.trim_rails_root(@asset_packager_yml_file)}'"
+        ":asset_packager_compatibility, '#{integration.base_relative_path(@asset_packager_yml_file)}'"
       end
       
       # Overrides the superclass method, incorporating the modification time of the
@@ -46,6 +54,11 @@ module AssetAggregator
         Proc.new do |fragments|
           fragments.sort_by { |f| @subpath_to_fragment_order_map[subpath].index(f.source_position.file) }
         end
+      end
+      
+      # The default value for :component_source_proc -- defines the mapping from 
+      def default_component_source_proc(yaml_key, filename)
+        integration.path_from_base('public', yaml_key.to_s, "#{filename}.#{extension}")
       end
       
       # The mapping from our own #AggregateType to the extensions of files we generate.
@@ -74,20 +87,26 @@ module AssetAggregator
       def refresh_fragments_since(last_refresh_fragments_since_time)
         complete_refresh = false
         
-        @asset_packager_yml_file_mtime = @filesystem_impl.mtime(@asset_packager_yml_file)
-        if (! @fragment_source_file_to_subpaths_map) || (@filesystem_impl.exist?(@asset_packager_yml_file) && @asset_packager_yml_file_mtime >= Time.at(last_refresh_fragments_since_time.to_i))
-          fragment_set.remove_all!
-          complete_refresh = true
-          read_fragment_source_file_to_subpaths_map
-        end
+        if @filesystem_impl.exist?(@asset_packager_yml_file)
+          @asset_packager_yml_file_mtime = @filesystem_impl.mtime(@asset_packager_yml_file)
+          if (! @fragment_source_file_to_subpaths_map) || (@asset_packager_yml_file_mtime >= Time.at(last_refresh_fragments_since_time.to_i))
+            fragment_set.remove_all!
+            complete_refresh = true
+            read_fragment_source_file_to_subpaths_map
+          end
 
-        @fragment_source_file_to_subpaths_map.each do |fragment_source_file, subpaths|
-          if complete_refresh || (! last_refresh_fragments_since_time) || (! @filesystem_impl.exist?(fragment_source_file)) || (@filesystem_impl.mtime(fragment_source_file) >= last_refresh_fragments_since_time)
-            fragment_set.remove_all_for_file(fragment_source_file) unless complete_refresh
-            if @filesystem_impl.exist?(fragment_source_file)
-              fragment_set.add(AssetAggregator::Core::Fragment.new(subpaths, AssetAggregator::Core::SourcePosition.new(fragment_source_file, nil), @filesystem_impl.read(fragment_source_file), @filesystem_impl.mtime(fragment_source_file)))
+          @fragment_source_file_to_subpaths_map.each do |fragment_source_file, subpaths|
+            if complete_refresh || (! last_refresh_fragments_since_time) || (! @filesystem_impl.exist?(fragment_source_file)) || (@filesystem_impl.mtime(fragment_source_file) >= last_refresh_fragments_since_time)
+              fragment_set.remove_all_for_file(fragment_source_file) unless complete_refresh
+              if @filesystem_impl.exist?(fragment_source_file)
+                fragment_set.add(AssetAggregator::Core::Fragment.new(subpaths, AssetAggregator::Core::SourcePosition.new(fragment_source_file, nil), @filesystem_impl.read(fragment_source_file), @filesystem_impl.mtime(fragment_source_file)))
+              end
             end
           end
+        else
+          @fragment_source_file_to_subpaths_map = nil
+          @asset_packager_yml_file_mtime = nil
+          fragment_set.remove_all!
         end
       end
       
@@ -110,7 +129,7 @@ module AssetAggregator
             @subpath_to_fragment_order_map[subpath] = [ ]
             
             aggregate_files.each do |aggregate_file|
-              net_file = File.join(::Rails.root, 'public', yaml_key.to_s, "#{aggregate_file}.#{extension}")
+              net_file = @component_source_proc.call(yaml_key.to_sym, aggregate_file)
               @fragment_source_file_to_subpaths_map[net_file] ||= [ ]
               @fragment_source_file_to_subpaths_map[net_file] << subpath
               @subpath_to_fragment_order_map[subpath] << net_file

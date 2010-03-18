@@ -5,7 +5,9 @@ require 'spec/spec_helper'
 # to make sure that certain key properties are satisfied.
 describe AssetAggregator::OutputHandlers::CommonOutputHandler do
   before :each do
-    @aggregate_type = mock(:aggregate_type)
+    @integration = mock(:integration)
+    @asset_aggregator = mock(:asset_aggregator, :integration => @integration)
+    @aggregate_type = mock(:aggregate_type, :asset_aggregator => @asset_aggregator)
     @subpath = "foo/bar"
     @mtime = Time.now.to_i - 1000
     @aggregators = [ ]
@@ -55,13 +57,23 @@ describe AssetAggregator::OutputHandlers::CommonOutputHandler do
     Regexp.escape(Time.at(x).to_s)
   end
   
+  def mockfrag(name, content, source_position)
+    out = mock(name, :content => content, :source_position => source_position)
+    class << source_position
+      def to_s(x)
+        super()
+      end
+    end
+    out
+  end
+  
   it "should put headers overall, per-aggregator, and per-fragment, when requested" do
     output_handler = make(:header_comment => :full, :aggregator_comment => :full, :fragment_comment => :full)
     
     aggregators = [ mock(:aggregator1, :to_s => 'aggregator1yo'), mock(:aggregator2, :to_s => 'aggregator2yo') ]
-    aggregator1_fragments = [ mock(:fragment1, :content => 'yo ho ho', :source_position => 'source_position_1'), mock(:fragment2, :content => 'and a bottle of rum', :source_position => 'source_position_2') ]
+    aggregator1_fragments = [ mockfrag(:fragment1, 'yo ho ho', 'source_position_1'), mockfrag(:fragment2, 'and a bottle of rum', 'source_position_2') ]
     add(output_handler, aggregators[0], aggregator1_fragments)
-    aggregator2_fragments = [ mock(:fragment3, :content => 'a pirate\'s life for me', :source_position => 'source_position_3') ]
+    aggregator2_fragments = [ mockfrag(:fragment3, 'a pirate\'s life for me', 'source_position_3') ]
     add(output_handler, aggregators[1], aggregator2_fragments)
     
     normalized_text(output_handler).should match(%r{foo/bar.xyz.*last\s+modified.*#{retime(@mtime)}.*aggregator1yo.*last\s+modified.*#{retime(@aggregator_mtimes[aggregators[0]])}.*source_position_1.*last\s+modified.*#{retime(@fragment_mtimes[aggregator1_fragments[0]])}.*yo ho ho.*source_position_2.*#{retime(@fragment_mtimes[aggregator1_fragments[1]])}.*and a bottle of rum.*aggregator2yo.*last\s+modified.*#{retime(@aggregator_mtimes[aggregators[1]])}.*source_position_3.*last\s+modified.*#{retime(@fragment_mtimes[aggregator2_fragments[0]])}.*a pirate's life for me}i)
@@ -71,9 +83,9 @@ describe AssetAggregator::OutputHandlers::CommonOutputHandler do
     output_handler = make(:header_comment => :brief, :aggregator_comment => :brief, :fragment_comment => :brief)
     
     aggregators = [ mock(:aggregator1, :to_s => 'aggregator1yo'), mock(:aggregator2, :to_s => 'aggregator2yo') ]
-    aggregator1_fragments = [ mock(:fragment1, :content => 'yo ho ho', :source_position => 'source_position_1'), mock(:fragment2, :content => 'and a bottle of rum', :source_position => 'source_position_2') ]
+    aggregator1_fragments = [ mockfrag(:fragment1, 'yo ho ho', 'source_position_1'), mockfrag(:fragment2, 'and a bottle of rum', 'source_position_2') ]
     add(output_handler, aggregators[0], aggregator1_fragments)
-    aggregator2_fragments = [ mock(:fragment3, :content => 'a pirate\'s life for me', :source_position => 'source_position_3') ]
+    aggregator2_fragments = [ mockfrag(:fragment3, 'a pirate\'s life for me', 'source_position_3') ]
     add(output_handler, aggregators[1], aggregator2_fragments)
     
     normalized_text(output_handler).should match(%r{['"]?foo/bar.xyz['"]?\s*@\s*#{@mtime}.*aggregator1yo\s*@\s*#{@aggregator_mtimes[aggregators[0]]}.*source_position_1\s*@\s*#{@fragment_mtimes[aggregator1_fragments[0]]}.*yo ho ho.*source_position_2\s*@\s*#{@fragment_mtimes[aggregator1_fragments[1]]}.*and a bottle of rum.*aggregator2yo\s*@\s*#{@aggregator_mtimes[aggregators[1]]}.*source_position_3\s*@\s*#{@fragment_mtimes[aggregator2_fragments[0]]}.*a pirate's life for me})
@@ -106,9 +118,9 @@ describe AssetAggregator::OutputHandlers::CommonOutputHandler do
     AssetAggregator::OutputHandlers::CommonOutputHandler.on_encryption(&encryption_proc)
     
     aggregators = [ mock(:aggregator1, :to_s => 'aggregator1yo'), mock(:aggregator2, :to_s => 'aggregator2yo') ]
-    aggregator1_fragments = [ mock(:fragment1, :content => 'yo ho ho', :source_position => 'source_position_1'), mock(:fragment2, :content => 'and a bottle of rum', :source_position => 'source_position_2') ]
+    aggregator1_fragments = [ mockfrag(:fragment1, 'yo ho ho', 'source_position_1'), mockfrag(:fragment2, 'and a bottle of rum', 'source_position_2') ]
     add(output_handler, aggregators[0], aggregator1_fragments)
-    aggregator2_fragments = [ mock(:fragment3, :content => 'a pirate\'s life for me', :source_position => 'source_position_3') ]
+    aggregator2_fragments = [ mockfrag(:fragment3, 'a pirate\'s life for me', 'source_position_3') ]
     add(output_handler, aggregators[1], aggregator2_fragments)
     
     result = normalized_text(output_handler)
@@ -142,8 +154,8 @@ describe AssetAggregator::OutputHandlers::CommonOutputHandler do
       AssetAggregator::OutputHandlers::CommonOutputHandler.on_encryption(&encryption_proc)
     
       aggregators = [ mock(:aggregator1, :to_s => 'aggregator1yo'), mock(:aggregator2, :to_s => 'aggregator2yo') ]
-      add(output_handler, aggregators[0], [ mock(:fragment1, :content => 'yo ho ho', :source_position => 'source_position_1'), mock(:fragment2, :content => 'and a bottle of rum', :source_position => 'source_position_2') ])
-      add(output_handler, aggregators[1], [ mock(:fragment3, :content => 'a pirate\'s life for me', :source_position => 'source_position_3') ])
+      add(output_handler, aggregators[0], [ mockfrag(:fragment1, 'yo ho ho', 'source_position_1'), mockfrag(:fragment2, 'and a bottle of rum', 'source_position_2') ])
+      add(output_handler, aggregators[1], [ mockfrag(:fragment3, 'a pirate\'s life for me', 'source_position_3') ])
     
       normalized_text(output_handler)
       
@@ -157,8 +169,8 @@ describe AssetAggregator::OutputHandlers::CommonOutputHandler do
     output_handler = make(:header_comment => :none, :aggregator_comment => :none, :fragment_comment => :none)
     
     aggregators = [ mock(:aggregator1, :to_s => 'aggregator1yo'), mock(:aggregator2, :to_s => 'aggregator2yo') ]
-    add(output_handler, aggregators[0], [ mock(:fragment1, :content => 'yo ho ho', :source_position => 'source_position_1'), mock(:fragment2, :content => 'and a bottle of rum', :source_position => 'source_position_2') ])
-    add(output_handler, aggregators[1], [ mock(:fragment3, :content => 'a pirate\'s life for me', :source_position => 'source_position_3') ])
+    add(output_handler, aggregators[0], [ mockfrag(:fragment1, 'yo ho ho', 'source_position_1'), mockfrag(:fragment2, 'and a bottle of rum', 'source_position_2') ])
+    add(output_handler, aggregators[1], [ mockfrag(:fragment3, 'a pirate\'s life for me', 'source_position_3') ])
     
     normalized = normalized_text(output_handler)
     [ %r{foo/bar.xyz}, %r{aggregator1yo}, %r{aggregator2yo}, %r{source_position_1}, %r{source_position_2}, %r{source_position_3} ].each do |bad_regex|

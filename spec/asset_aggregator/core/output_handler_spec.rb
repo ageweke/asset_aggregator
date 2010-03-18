@@ -2,7 +2,9 @@ require 'spec/spec_helper'
 
 describe AssetAggregator::Core::OutputHandler do
   before :each do
-    @aggregate_type = mock(:aggregate_type)
+    @integration = mock(:integration)
+    @asset_aggregator = mock(:asset_aggregator, :integration => @integration)
+    @aggregate_type = mock(:aggregate_type, :asset_aggregator => @asset_aggregator)
     @subpath = "foo/bar"
     @mtime = Time.now.to_i - 1000
     @options = mock(:options)
@@ -15,6 +17,7 @@ describe AssetAggregator::Core::OutputHandler do
     @output_handler.send(:mtime).should == @mtime
     @output_handler.send(:subpath).should == @subpath
     @output_handler.send(:options).should == @options
+    @output_handler.send(:integration).should == @integration
   end
   
   it "should return all #output calls on #text" do

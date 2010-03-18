@@ -71,7 +71,7 @@ module AssetAggregator
           aggregate_whole(aggregate_type, subpath, references)
         else
           references.each do |reference|
-            fragment = @asset_aggregator.fragment_for(aggregate_type, reference.fragment_source_position)
+            fragment = asset_aggregator.fragment_for(aggregate_type, reference.fragment_source_position)
             raise "This reference points to a fragment that doesn't exist. Please check the location and try again.\n#{reference}" unless fragment
             output_if_verbose "    <!-- #{reference}: -->"
             output_if_verbose "    #{fragment_include_tag_for(aggregate_type, reference.fragment_source_position)}"
@@ -129,6 +129,14 @@ module AssetAggregator
         output(s) if @options[:verbose]
       end
       
+      def asset_aggregator
+        @asset_aggregator
+      end
+      
+      def integration
+        @asset_aggregator.integration
+      end
+      
       def h(s)
         ERB::Util.html_escape(s)
       end
@@ -181,7 +189,7 @@ module AssetAggregator
       def fragment_url_for(aggregate_type, source_position)
         extension = extension_for(aggregate_type)
         
-        path = AssetAggregator::Core::SourcePosition.trim_rails_root(source_position.file)
+        path = integration.base_relative_path(source_position.file)
         path = path.split(%r{/+})
         path[-1] = $1 if path[-1] =~ /^(.*)\.#{extension}$/i
         

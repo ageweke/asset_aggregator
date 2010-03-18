@@ -13,8 +13,8 @@ module AssetAggregator
     # because your page may well be completely incorrect.
     class FreezableReferenceSet < ReferenceSet
       # Creates a new, empty instance.
-      def initialize
-        super
+      def initialize(integration)
+        super(integration)
         @frozen_types = [ ]
       end
       
@@ -26,7 +26,7 @@ module AssetAggregator
       def add(reference)
         if @frozen_types.include?(reference.aggregate_type)
           if @references.detect { |r| r.aggregate_type == reference.aggregate_type && r.fragment_source_position == reference.fragment_source_position }
-            ::Rails.logger.warn %{Warning: You're trying to add a reference to an asset, but we've
+            integration.warn %{Warning: You're trying to add a reference to an asset, but we've
 already output the actual include tags (e.g., <script source="...">) for
 this type of asset. This can occur when you've added a CSS or JavaScript
 file for a partial that gets rendered by the layout itself, *after*

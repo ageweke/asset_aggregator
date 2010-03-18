@@ -19,6 +19,8 @@ describe AssetAggregator::Core::AggregateType do
   end
   
   before :each do
+    @integration = mock(:integration)
+    @asset_aggregator = mock(:asset_aggregator, :integration => @integration)
     @type = 'foobar'
     @file_cache = mock(:file_cache)
     @output_handler_creator = mock(:output_handler_creator)
@@ -28,11 +30,13 @@ describe AssetAggregator::Core::AggregateType do
       add TestAggregatorClass, :bar, :baz
     end
     
-    @aggregate_type = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
+    @aggregate_type = AssetAggregator::Core::AggregateType.new(@asset_aggregator, @type, @file_cache, @output_handler_creator, definition_proc)
   end
   
   it "should return its components correctly" do
     @aggregate_type.type.should == @type
+    @aggregate_type.asset_aggregator.should == @asset_aggregator
+    @aggregate_type.integration.should == @integration
   end
   
   it "should add the right aggregators" do
@@ -65,7 +69,7 @@ describe AssetAggregator::Core::AggregateType do
       add(TestAggregatorClass, :bar, :baz, &proc_2)
     end
     
-    @aggregate_type = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
+    @aggregate_type = AssetAggregator::Core::AggregateType.new(@asset_aggregator, @type, @file_cache, @output_handler_creator, definition_proc)
     
     aggregators = @aggregate_type.instance_variable_get(:@aggregators)
     aggregators.length.should == 2
@@ -78,7 +82,7 @@ describe AssetAggregator::Core::AggregateType do
     definition_proc = Proc.new do
       add :files, 'bonk'
     end
-    type_with_predefined = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
+    type_with_predefined = AssetAggregator::Core::AggregateType.new(@asset_aggregator, @type, @file_cache, @output_handler_creator, definition_proc)
     
     aggregators = type_with_predefined.instance_variable_get(:@aggregators)
     aggregators.length.should == 1
@@ -101,7 +105,7 @@ describe AssetAggregator::Core::AggregateType do
       end
     end
     
-    type_with_filters = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
+    type_with_filters = AssetAggregator::Core::AggregateType.new(@asset_aggregator, @type, @file_cache, @output_handler_creator, definition_proc)
     aggregators = type_with_filters.instance_variable_get(:@aggregators)
     aggregators.length.should == 1
     
@@ -125,7 +129,7 @@ describe AssetAggregator::Core::AggregateType do
       add TestAggregatorClass, :marph
     end
     
-    type_with_filters = AssetAggregator::Core::AggregateType.new(@type, @file_cache, @output_handler_creator, definition_proc)
+    type_with_filters = AssetAggregator::Core::AggregateType.new(@asset_aggregator, @type, @file_cache, @output_handler_creator, definition_proc)
     aggregators = type_with_filters.instance_variable_get(:@aggregators)
     aggregators.length.should == 5
     

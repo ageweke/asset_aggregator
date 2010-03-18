@@ -12,12 +12,6 @@ describe AssetAggregator::Core::SourcePosition do
   describe "with a line" do
     before(:each) do
       @file = File.join(File.dirname(this_file), 'sample.txt')
-      @terse_file = @file
-      rails_root = File.canonical_path(::Rails.root)
-      
-      if @terse_file[0..(rails_root.length - 1)] == rails_root
-        @terse_file = @terse_file[(::Rails.root.length + 1)..-1]
-      end
       
       @position = make(@file, 77)
     end
@@ -27,13 +21,31 @@ describe AssetAggregator::Core::SourcePosition do
       @position.line.should == 77
     end
     
-    it "should return a terse file" do
-      @position.terse_file.should == @terse_file
-      @position.terse_file.should_not == @file
+    it "should use the integration object to make a terse file, when appropriate" do
+      integration = mock(:integration)
+      integration.should_receive(:base_relative_path).once.with(@file).and_return("foobarbaz/quux")
+      
+      @position.terse_file(integration).should == "foobarbaz/quux"
+    end
+    
+    it "should return the full file, when no integration object is supplied to #terse_file" do
+      @position.terse_file.should == @file
+      @position.terse_file(nil).should == @file
     end
     
     it "should make a nice string" do
-      @position.to_s.should == "#{@terse_file}:77"
+      @position.to_s.should == "#{@file}:77"
+    end
+    
+    it "should use the integrator to make a terse file in #to_s" do
+      integration = mock(:integration)
+      integration.should_receive(:base_relative_path).once.with(@file).and_return("foobarbaz/quux")
+      
+      @position.to_s(integration).should == "foobarbaz/quux:77"
+    end
+
+    it "should allow a nil integrator to be passed for #to_s" do
+      @position.to_s(nil).should == "#{@file}:77"
     end
   end
   
@@ -88,10 +100,9 @@ describe AssetAggregator::Core::SourcePosition do
     end
   end
   
-  describe "not under Rails.root" do
+  describe "not under the base dir" do
     before(:each) do
       @file = "/foo/bar/baz/quux"
-      @terse_file = @file
       @position = make(@file, 77)
     end
     
@@ -100,24 +111,14 @@ describe AssetAggregator::Core::SourcePosition do
       @position.line.should == 77
     end
     
-    it "should return a terse file" do
-      @position.terse_file.should == @terse_file
-    end
-    
     it "should make a nice string" do
-      @position.to_s.should == "#{@terse_file}:77"
+      @position.to_s.should == "#{@file}:77"
     end
   end
   
   describe "without a line" do
     before(:each) do
       @file = File.join(File.dirname(this_file), 'sample.txt')
-      @terse_file = @file
-      
-      if @terse_file[0..(::Rails.root.length - 1)] == ::Rails.root
-        @terse_file = @terse_file[(::Rails.root.length + 1)..-1]
-      end
-      
       @position = make(@file, nil)
     end
     
@@ -126,12 +127,8 @@ describe AssetAggregator::Core::SourcePosition do
       @position.line.should be_nil
     end
     
-    it "should return a terse file" do
-      @position.terse_file.should == @terse_file
-    end
-    
     it "should make a nice string" do
-      @position.to_s.should == @terse_file
+      @position.to_s.should == @file
     end
   end
   

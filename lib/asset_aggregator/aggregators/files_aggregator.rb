@@ -65,7 +65,7 @@ module AssetAggregator
 
       # A nice human-readable description.
       def to_s
-        ":files, \'#{AssetAggregator::Core::SourcePosition.trim_rails_root(@root)}\', ..."
+        ":files, \'#{integration.base_relative_path(@root)}\', ..."
       end
       
       private

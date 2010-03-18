@@ -10,7 +10,7 @@ module AssetAggregator
       end
       
       def create_asset_aggregator_page_reference_set
-        AssetAggregator::Rails::PageReferenceSet.new
+        AssetAggregator::Rails::PageReferenceSet.new(AssetAggregator.standard_instance)
       end
       
       def asset_aggregator_page_reference_set

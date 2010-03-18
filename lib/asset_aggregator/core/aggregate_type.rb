@@ -9,7 +9,8 @@ module AssetAggregator
       # to AssetAggregator.content_for(), so that you can have the same subpath with
       # different kinds of aggregated content.
       #
-      # +file_cache+ is the #FileCache object that should be used, which is typically
+      # +asset_aggregator+ is the #AssetAggregator that this #AggregateType is attached
+      # to. +file_cache+ is the #FileCache object that should be used, which is typically
       # global to the #AssetAggregator (so as to achieve maximum caching effect).
       # +output_handler+ is the #OutputHandler instance to be used with this type;
       # this defines the literal representation of combined assets -- i.e., how we
@@ -17,13 +18,24 @@ module AssetAggregator
       # can read. +definition_proc+ gets run in the context of this object; it is
       # what calls some combination of #add and #filter_with so that the right
       # #Aggregator objects get added to this type.
-      def initialize(type, file_cache, output_handler_creator, definition_proc)
+      def initialize(asset_aggregator, type, file_cache, output_handler_creator, definition_proc)
+        @asset_aggregator = asset_aggregator
         @type = type
         @file_cache = file_cache
         @output_handler_creator = output_handler_creator
         @aggregators = [ ]
         
         instance_eval(&definition_proc)
+      end
+      
+      # Returns the #AssetAggregator that this #AggregateType is attached to.
+      def asset_aggregator
+        @asset_aggregator
+      end
+      
+      # Returns the #Integration object we should be using.
+      def integration
+        @asset_aggregator.integration
       end
       
       # Given the #SourcePosition for a #Fragment aggregated by some #Aggregator
@@ -52,7 +64,7 @@ module AssetAggregator
         end
         
         if fragment
-          output_handler = @output_handler_creator.call(self, fragment.source_position.terse_file)
+          output_handler = @output_handler_creator.call(self, fragment.source_position.terse_file(integration))
           output_handler.start_all
           output_handler.start_aggregator(aggregator)
           output_handler.start_fragment(aggregator, fragment)

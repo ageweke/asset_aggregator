@@ -23,18 +23,6 @@ module AssetAggregator
             new(line)
           end
         end
-        
-        # Given a path, trims Rails.root off the start of it, if it's under Rails.root.
-        # If it's not, returns its input.
-        def trim_rails_root(path)
-          out = path
-          rails_root = File.canonical_path(::Rails.root)
-          if (out.length > rails_root.length + 1) && (out[0..(rails_root.length - 1)] == rails_root)
-            out = out[(rails_root.length)..-1]
-            out = $1 if out =~ %r{[/\\]+(.*)$}
-          end
-          out
-        end
       end
       
       # Gives us ==, <, >, <=, >=
@@ -69,16 +57,17 @@ module AssetAggregator
         out
       end
     
-      # Like #file, but trims the Rails root off the file path, if it's under the Rails root.
-      def terse_file
-        self.class.trim_rails_root(@file)
+      # Like #file, but uses the supplied #Integration object to provide a path
+      # relative to the integration base directory, if this file is under it.
+      def terse_file(integration = nil)
+        if integration then integration.base_relative_path(@file) else @file end
       end
       
-      # Returns a string like "/foo/bar/baz:123"; this will be an absolute path unless
-      # it's underneath the Rails root, in which case it will be the relative path from
-      # the Rails root.
-      def to_s
-        if @line then "#{terse_file}:#{@line}" else terse_file end
+      # Returns a string like "/foo/bar/baz:123"; uses #terse_file, above, so if
+      # you pass an #Integration object to it, it will trim off the base directory,
+      # if needed.
+      def to_s(integration = nil)
+        if @line then "#{terse_file(integration)}:#{@line}" else terse_file(integration) end
       end
     end
   end

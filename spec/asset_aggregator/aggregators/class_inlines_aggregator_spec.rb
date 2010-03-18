@@ -6,11 +6,16 @@ describe AssetAggregator::Aggregators::ClassInlinesAggregator do
   include AssetAggregator::Aggregators::AggregatorSpecHelperMethods
 
   before :each do
+    @base_dir = File.expand_path("this_should_not_exist")
+    @root = File.join(@base_dir, "app", "views")
+
     @filesystem_impl = AssetAggregator::TestFilesystemImpl.new
     @mtime = 1.hour.ago.to_i
     @filesystem_impl.set_default_mtime(@mtime)
 
-    @aggregate_type = mock(:aggregate_type)
+    @integration = mock(:integration)
+    @asset_aggregator = mock(:asset_aggregator, :integration => @integration)
+    @aggregate_type = mock(:aggregate_type, :asset_aggregator => @asset_aggregator)
     @file_cache = mock(:file_cache)
     @filters = [ ]
     @methods_for_file_proc = mock('methods_for_file_proc')
@@ -18,8 +23,6 @@ describe AssetAggregator::Aggregators::ClassInlinesAggregator do
     
     @subpath_definitions = [ ]
     @subpath_definition_proc = Proc.new { |file, content| @subpath_definitions << [ file, content ]; [ content[0..2], content[-3..-1] ] }
-    
-    @root = File.join(::Rails.root, 'app', 'views')
   end
   
   def make(root, options = { })
@@ -41,7 +44,8 @@ describe AssetAggregator::Aggregators::ClassInlinesAggregator do
   
   it "should turn itself into a string reasonably" do
     aggregator = make(@root)
-    aggregator.to_s.should match(/class_inlines.*app\/views/)
+    @integration.should_receive(:base_relative_path).once.with(@root).and_return("funky")
+    aggregator.to_s.should match(/class_inlines.*funky/)
   end
   
   def check_aggregator(options)
@@ -55,21 +59,22 @@ describe AssetAggregator::Aggregators::ClassInlinesAggregator do
     allow_default_content = if options.has_key?(:allow_default_content) then options[:allow_default_content] else true end
     
     path_to_full_path_map = { }
-    input_paths.each { |p| path_to_full_path_map[p] = File.join(::Rails.root, p) }
-    processed_paths.each { |p| path_to_full_path_map[p] = File.join(::Rails.root, p) }
+    input_paths.each { |p| path_to_full_path_map[p] = (if p =~ %r{^/} then p else File.join(@base_dir, p) end) }
+    processed_paths.each { |p| path_to_full_path_map[p] = (if p =~ %r{^/} then p else File.join(@base_dir, p) end) }
+    # processed_paths.each { |p| path_to_full_path_map[p] = File.join(@base_dir, p) }
     
     default_target_class = mock('default_target_class')
     
     expected_content_for_subpaths = { }
     
-    @file_cache.should_receive(:changed_files_since).once.with(@root, options[:file_cache_mtime]).and_return(input_paths)
+    @file_cache.should_receive(:changed_files_since).once.with(@root, options[:file_cache_mtime]).and_return(input_paths.map { |x| path_to_full_path_map[x] })
     processed_paths.each do |short_processed_path|
       processed_path = path_to_full_path_map[short_processed_path]
       methods = processed_path_to_method_map[short_processed_path] || :test_aggregate_method
-      @methods_for_file_proc.should_receive(:call).any_number_of_times.with(short_processed_path).and_return(methods) if @methods_for_file_proc
+      @methods_for_file_proc.should_receive(:call).any_number_of_times.with(processed_path).and_return(methods) if @methods_for_file_proc
       
       target_class = processed_path_to_class_map[short_processed_path] || default_target_class
-      @file_to_class_proc.should_receive(:call).once.ordered.with(short_processed_path).and_return(target_class)
+      @file_to_class_proc.should_receive(:call).once.ordered.with(processed_path).and_return(target_class)
       Array(methods).each do |method|
         responds = true
         if processed_path_to_respond_to_map[short_processed_path]
@@ -124,7 +129,7 @@ describe AssetAggregator::Aggregators::ClassInlinesAggregator do
   end
   
   it "should skip dotfiles and directories" do
-    @filesystem_impl.set_directory('a/b/c')
+    @filesystem_impl.set_directory(File.join(@base_dir, 'a/b/c'))
     check_aggregator(:input_paths => [ 'foo/bar/baz', '.foobar', 'a/b/c' ], :processed_paths => [ 'foo/bar/baz' ])
   end
   
@@ -151,7 +156,7 @@ describe AssetAggregator::Aggregators::ClassInlinesAggregator do
   
   it "should allow files to vanish" do
     aggregator = check_aggregator(:input_paths => 'foo/bar/baz')
-    @filesystem_impl.set_does_not_exist('foo/bar/baz', true)
+    @filesystem_impl.set_does_not_exist(File.join(@base_dir, 'foo/bar/baz'), true)
     check_aggregator(:aggregator => aggregator, :file_cache_mtime => anything(), :input_paths => 'foo/bar/baz', :processed_paths => [ ])
   end
   

@@ -98,13 +98,13 @@ END
         when nil, :none, false then
           # nothing
         when :brief then
-          output "/* #{fragment.source_position} @ #{short_time(fragment.mtime)} */"
+          output "/* #{fragment.source_position.to_s(integration)} @ #{short_time(fragment.mtime)} */"
         when :encrypted then
-          output "/* #{encrypt("#{fragment.source_position} @ #{short_time(fragment.mtime)}")} */"
+          output "/* #{encrypt("#{fragment.source_position.to_s(integration)} @ #{short_time(fragment.mtime)}")} */"
         when :full then
           output <<-END
 /* ----------------------------------------------------------------------
-   - #{fragment.source_position} (last modified: #{long_time(fragment.mtime)})
+   - #{fragment.source_position.to_s(integration)} (last modified: #{long_time(fragment.mtime)})
    ---------------------------------------------------------------------- */
 END
         else

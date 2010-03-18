@@ -8,9 +8,9 @@ module AssetAggregator
       # Creates a new instance. +aggregate_type+ is the #AggregateType object that
       # we're outputting content for, and +subpath+ is the (#String) subpath that
       # we're outputting content for. Note that +subpath+ can actually be the filename
-      # (with +Rails.root+ stripped off, if present) of a #Fragment, in the case
-      # where we're outputting a single fragment (used in development mode when
-      # requested).
+      # (with the integration base directory stripped off, if present) of a #Fragment,
+      # in the case where we're outputting a single fragment (used in development mode
+      # when requested).
       def initialize(aggregate_type, subpath, mtime, options)
         @aggregate_type = aggregate_type
         @subpath = subpath
@@ -78,6 +78,11 @@ module AssetAggregator
       
       private
       attr_reader :aggregate_type, :subpath, :options, :mtime
+      
+      # Returns the #Integration object we should use.
+      def integration
+        aggregate_type.asset_aggregator.integration
+      end
       
       # Outputs the given string to the in-memory #StringIO object that we're
       # building up, using the same semantics as #puts.

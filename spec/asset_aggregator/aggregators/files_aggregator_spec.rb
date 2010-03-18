@@ -6,12 +6,15 @@ describe AssetAggregator::Aggregators::FilesAggregator do
   include AssetAggregator::Aggregators::AggregatorSpecHelperMethods
   
   before :each do
-    @aggregate_type = mock(:aggregate_type)
+    @base_dir = File.expand_path("this_should_not_exist")
+    @root = File.join(@base_dir, 'app', 'views')
+
+    @integration = AssetAggregator::Core::Integration.new(@base_dir, nil)
+    @asset_aggregator = mock(:asset_aggregator, :integration => @integration)
+    @aggregate_type = mock(:aggregate_type, :asset_aggregator => @asset_aggregator)
     @file_cache = mock(:file_cache)
     @filters = [ ]
     @filesystem_impl = AssetAggregator::TestFilesystemImpl.new
-    
-    @root = File.join(::Rails.root, 'app', 'views')
   end
   
   def make(root, include_proc = nil, options = nil, &subpath_definition_proc)
@@ -272,8 +275,8 @@ describe AssetAggregator::Aggregators::FilesAggregator do
     end
   end
   
-  it "should use the file's name when outside Rails.root/app" do
-    @root = File.join(File.dirname(::Rails.root), 'somewhere', 'else')
+  it "should use the file's name when outside base_dir/app" do
+    @root = File.join(File.dirname(@base_dir), 'somewhere', 'else')
     path = File.join(@root, 'foo', 'bar.css')
     
     @file_cache.should_receive(:changed_files_since).once.with(@root, nil, [ ]).and_return([ path ])

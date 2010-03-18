@@ -6,7 +6,10 @@ describe AssetAggregator::Core::Aggregator do
     @filter1 = mock(:filter1)
     @filter2 = mock(:filter2)
     @filters = [ @filter1, @filter2 ]
-    @aggregate_type = mock(:aggregate_type)
+    
+    @integration = mock(:integration)
+    @asset_aggregator = mock(:asset_aggregator, :integration => @integration)
+    @aggregate_type = mock(:aggregate_type, :asset_aggregator => @asset_aggregator)
     @test_fragment_set = mock(:fragment_set)
     
     @aggregator = AssetAggregator::Core::Aggregator.new(@aggregate_type, @file_cache, @filters)
@@ -30,6 +33,8 @@ describe AssetAggregator::Core::Aggregator do
   it "should return its components correctly" do
     @aggregator.send(:fragment_set).should == @test_fragment_set
     @aggregator.send(:aggregate_type).should == @aggregate_type
+    @aggregator.send(:asset_aggregator).should == @asset_aggregator
+    @aggregator.send(:integration).should == @integration
     
     @aggregate_type.should_receive(:type).and_return(:foobar)
     @aggregator.send(:aggregate_type_symbol).should == :foobar
@@ -144,15 +149,28 @@ describe AssetAggregator::Core::Aggregator do
   end
   
   describe "#default_subpath_definition" do
-    it "should return subdirectories under Rails.root correctly" do
-      @aggregator.send(:default_subpath_definition, File.join(Rails.root, "app", "foo", "bar", "baz", "quux.html.erb"), "whatever").should == 'bar'
-      @aggregator.send(:default_subpath_definition, File.join(Rails.root, "app", "foo.html.erb"), "whatever").should == 'foo'
-      @aggregator.send(:default_subpath_definition, File.join(Rails.root, "bonk.html.erb"), "whatever").should == 'bonk'
+    it "should return subdirectories under the base directory correctly" do
+      {
+        "app/foo/bar/baz/quux.html.erb" => "bar",
+        "app/foo.html.erb" => "foo",
+        "bonk.html.erb" => "bonk"
+      }.each do |subpath, result|
+        full_path = File.expand_path(File.join("nonsense", subpath))
+        @integration.should_receive(:is_under_base?).with(full_path).once.and_return(true)
+        @integration.should_receive(:base_relative_path).with(full_path).once.and_return(subpath)
+        @aggregator.send(:default_subpath_definition, full_path, "whatever").should == result
+      end
     end
 
     it "should return other files correctly" do
-      @aggregator.send(:default_subpath_definition, "/foo/bar/baz.x.y.z", "whatever").should == 'baz'
-      @aggregator.send(:default_subpath_definition, "foo/bar/baz.x.y.z", "whatever").should == 'baz'
+      {
+        "/foo/bar/baz.x.y.z" => "baz",
+        "foo/bar/baz.x.y.z" => "baz"
+      }.each do |path, result|
+        full_path = File.expand_path(path)
+        @integration.should_receive(:is_under_base?).with(full_path).once.and_return(false)
+        @aggregator.send(:default_subpath_definition, path, "whatever").should == result
+      end
     end
   end
   
