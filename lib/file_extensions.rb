@@ -7,14 +7,16 @@ class File
     end
     
     def canonical_path(p)
-      return '/' if p == '/'
-      p = File.expand_path(p)
-      out = canonical_path(File.dirname(p))
-      if File.symlink?(p)
-        out = canonical_path(File.expand_path(File.join(out, File.readlink(p))))
-      else
-        out = File.join(out, File.basename(p))
+      extant = File.expand_path(p)
+      suffix = ""
+      until File.exist?(extant)
+        suffix = File.join(File.basename(extant), suffix)
+        extant = File.dirname(extant)
       end
+      
+      extant = Pathname.new(extant).realpath.to_s
+      out = File.join(extant, suffix)
+      out = $1 if out =~ %r{^(.+?)\s*/+\s*$}i
       out
     end
     
