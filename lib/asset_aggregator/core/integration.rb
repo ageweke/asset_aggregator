@@ -39,6 +39,26 @@ module AssetAggregator
       def debug(s)
         @logger.debug(s)
       end
+      
+      def javascript_include_tag(url)
+        raise "nyi"
+      end
+      
+      def stylesheet_link_tag(url)
+        raise "nyi"
+      end
+      
+      def html_escape(s)
+        raise "nyi"
+      end
+      
+      def include_dependency_tag_comments?
+        raise "nyi"
+      end
+      
+      def include_fragment_dependencies_instead_of_aggregates?
+        false
+      end
     end
   end
 end

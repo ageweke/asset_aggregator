@@ -1,21 +1,29 @@
 module AssetAggregator
   module Rails
     class PageReferencesOutputHandler
-      def initialize(asset_aggregator, object_to_call_helper_methods_on, options = { })
+      def initialize(asset_aggregator, options = { })
         require 'stringio'
         @out = StringIO.new
         @asset_aggregator = asset_aggregator
-        @object_to_call_helper_methods_on = object_to_call_helper_methods_on
-        @options = options
-        @options[:verbose] = true if (! @options.has_key?(:verbose)) && ::Rails.env.development?
-        @options[:max_css_link_tags] ||= 31
-        @options[:aggregated_controller_name] ||= 'aggregated'
+        
+        options = {
+          :verbose                                             => integration.include_dependency_tag_comments?,
+          :max_css_link_tags                                   => 31,
+          :include_fragment_dependencies_instead_of_aggregates => integration.include_fragment_dependencies_instead_of_aggregates?
+        }.merge(@options)
+        
+        @verbose = options[:verbose]
+        @max_css_link_tags = options[:max_css_link_tags]
+        @include_fragment_dependencies_instead_of_aggregates = options[:include_fragment_dependencies_instead_of_aggregates]
+        @type_to_extension_map = {
+          :javascript => 'js', :css => 'css'
+        }.merge(options[:type_to_extension_map])
       end
       
       def start_all
         output_if_verbose "<!-- BEGIN AssetAggregator Includes -->"
         
-        if @options[:fragments]
+        if @include_fragment_dependencies_instead_of_aggregates
           output_if_verbose ""
           output_if_verbose "<!-- NOTE:"
           output_if_verbose ""
@@ -33,7 +41,7 @@ module AssetAggregator
       end
       
       def need_to_import_css_instead?(subpath_references_pairs_this_type)
-        subpath_references_pairs_this_type.length > @options[:max_css_link_tags]
+        subpath_references_pairs_this_type.length > @max_css_link_tags
       end
       
       def start_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
@@ -56,7 +64,7 @@ module AssetAggregator
       end
       
       def aggregate(aggregate_type, subpath, references)
-        if options[:fragments]
+        if @include_fragment_dependencies_instead_of_aggregates
           aggregate_fragments(aggregate_type, subpath, references)
         else
           aggregate_whole(aggregate_type, subpath, references)
@@ -65,7 +73,7 @@ module AssetAggregator
       
       def aggregate_fragments(aggregate_type, subpath, references)
         if references.detect { |r| r.kind_of?(AssetAggregator::Core::AggregateReference) }
-          output_if_verbose "    <!-- NOTE: Aggregate '#{h(subpath)}' is explicitly required (as an aggregate), "
+          output_if_verbose "    <!-- NOTE: Aggregate '#{integration.html_escape(subpath)}' is explicitly required (as an aggregate), "
           output_if_verbose "         so we have to include it as such, even though you're asking for fragments "
           output_if_verbose "         separately. -->"
           aggregate_whole(aggregate_type, subpath, references)
@@ -89,7 +97,7 @@ module AssetAggregator
       end
       
       def aggregate_whole(aggregate_type, subpath, references)
-        output_if_verbose "    #{current_comment_start} Aggregate '#{h(subpath)}' is required by:"
+        output_if_verbose "    #{current_comment_start} Aggregate '#{integration.html_escape(subpath)}' is required by:"
         references.each do |reference|
           text = "          #{reference}"
           if reference.kind_of?(AssetAggregator::Core::FragmentReference)
@@ -119,14 +127,12 @@ module AssetAggregator
       end
       
       private
-      attr_reader :object_to_call_helper_methods_on, :options
-      
       def output(s)
         @out.puts s
       end
       
       def output_if_verbose(s)
-        output(s) if @options[:verbose]
+        output(s) if @verbose
       end
       
       def asset_aggregator
@@ -134,11 +140,7 @@ module AssetAggregator
       end
       
       def integration
-        @asset_aggregator.integration
-      end
-      
-      def h(s)
-        ERB::Util.html_escape(s)
+        asset_aggregator.integration
       end
       
       def cache_bust(url, mtime)
@@ -153,28 +155,24 @@ module AssetAggregator
       
       def include_tag_for_url(aggregate_type, url)
         case aggregate_type
-        when :javascript then object_to_call_helper_methods_on.javascript_include_tag(url)
+        when :javascript then integration.javascript_include_tag(url)
         when :css
           if @output_as_imports
             "@import url(#{url});\n"
           else
-            object_to_call_helper_methods_on.stylesheet_link_tag(url)
+            integration.stylesheet_link_tag(url)
           end
         else raise "Don't know how to take a URL and turn it into HTML that references that URL (e.g., the equivalent of <script src=\"...\">) for aggregates of type #{aggregate_type.inspect}; please subclass #{self.class.name}, override #aggregate_include_tag_for_url, and pass it in to PageReferenceSet#include_text"
         end
       end
       
       def extension_for(aggregate_type)
-        out = (options[:extensions] || { })[aggregate_type]
-        out ||= 'js' if aggregate_type == :javascript
-        out ||= 'css' if aggregate_type == :css
-        raise "Don't know what extension #{aggregate_type.inspect} references should have in their URL; please supply options[:extensions][#{aggregate_type.inspect}]" unless out
-        out
+        @type_to_extension_map[aggregate_type] || raise("Don't know what extension #{aggregate_type.inspect} references should have in their URL; please supply options[:type_to_extension_map][#{aggregate_type.inspect}]")
       end
       
       def aggregate_subpath_url_for(aggregate_type, subpath)
-        url = AssetAggregator.aggregate_url(object_to_call_helper_methods_on.method(:url_for), aggregate_type, subpath)
-        cache_bust(url, AssetAggregator.mtime_for(aggregate_type, subpath))
+        url = asset_aggregator.aggregate_url(aggregate_type, subpath)
+        cache_bust(url, asset_aggregator.mtime_for(aggregate_type, subpath))
       end
       
       def aggregate_include_tag_for_url(aggregate_type, subpath, url)
@@ -185,7 +183,6 @@ module AssetAggregator
         aggregate_include_tag_for_url(aggregate_type, subpath, aggregate_subpath_url_for(aggregate_type, subpath))
       end
       
-      
       def fragment_url_for(aggregate_type, source_position)
         extension = extension_for(aggregate_type)
         
@@ -194,8 +191,8 @@ module AssetAggregator
         path[-1] = $1 if path[-1] =~ /^(.*)\.#{extension}$/i
         
         path[-1] += ":#{source_position.line}" if source_position.line
-        url = AssetAggregator.fragment_url(object_to_call_helper_methods_on.method(:url), aggregate_type, source_position)
-        cache_bust(url, AssetAggregator.fragment_mtime_for(aggregate_type, source_position))
+        url = asset_aggregator.fragment_url(aggregate_type, source_position)
+        cache_bust(url, asset_aggregator.fragment_mtime_for(aggregate_type, source_position))
       end
       
       def fragment_include_tag_for_url(aggregate_type, subpath, url)
