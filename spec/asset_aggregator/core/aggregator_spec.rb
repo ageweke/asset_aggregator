@@ -126,6 +126,10 @@ describe AssetAggregator::Core::Aggregator do
     @aggregator.max_mtime_for('foo/bar').should be_nil
   end
   
+  it "should return nil for its #fragment_sorting_proc by default" do
+    @aggregator.fragment_sorting_proc('foo/bar').should be_nil
+  end
+  
   it "should pass its #fragment_sorting_proc through on #each_fragment_for" do
     subpath = 'foo/bar'
     sorting_proc = mock(:sorting_proc)

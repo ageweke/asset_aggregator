@@ -17,6 +17,11 @@ describe AssetAggregator::Core::Fragment do
     @fragment.mtime.should == @mtime.to_i
   end
   
+  it "should be able to be created without content" do
+    @fragment = AssetAggregator::Core::Fragment.new(@target_subpath, @source_position, nil, @mtime)
+    @fragment.content.should be_nil
+  end
+  
   it "should return the array of target subpaths, if supplied" do
     AssetAggregator::Core::Fragment.new([ "a/b", "b/c" ], @source_position, @content, @mtime).target_subpaths.should == [ "a/b", "b/c" ]
   end

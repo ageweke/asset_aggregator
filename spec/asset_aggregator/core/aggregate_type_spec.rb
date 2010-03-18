@@ -89,7 +89,7 @@ describe AssetAggregator::Core::AggregateType do
     aggregator.instance_variable_get(:@aggregate_type).should == type_with_predefined
   end
   
-  it "should add filters on #filter_if, but only if requested" do
+  it "should add filters on #filter_with_if, but only if requested" do
     filter1 = mock(:filter1, :filter => nil)
     filter2 = mock(:filter2, :filter => nil)
     
