@@ -1,5 +1,5 @@
 module AssetAggregator
-  module Rails
+  module Core
     class PageReferenceSet
       def initialize(asset_aggregator)
         @asset_aggregator = asset_aggregator
@@ -33,7 +33,7 @@ module AssetAggregator
         options = options.dup
         
         types = options.delete(:types) || @reference_set.aggregate_types
-        output_handler_class = options.delete(:output_handler_class) || AssetAggregator::Rails::PageReferencesOutputHandler
+        output_handler_class = options.delete(:output_handler_class) || AssetAggregator::Core::PageReferencesOutputHandler
         
         output_handler = output_handler_class.new(asset_aggregator, options)
         output_handler.start_all
