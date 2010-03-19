@@ -1,7 +1,7 @@
 module AssetAggregator
-  module Rails
+  module Core
     class PageReferencesOutputHandler
-      def initialize(asset_aggregator, options = { })
+      def initialize(asset_aggregator, options_in = { })
         require 'stringio'
         @out = StringIO.new
         @asset_aggregator = asset_aggregator
@@ -10,14 +10,14 @@ module AssetAggregator
           :verbose                                             => integration.include_dependency_tag_comments?,
           :max_css_link_tags                                   => 31,
           :include_fragment_dependencies_instead_of_aggregates => integration.include_fragment_dependencies_instead_of_aggregates?
-        }.merge(@options)
+        }.merge(options_in)
         
         @verbose = options[:verbose]
         @max_css_link_tags = options[:max_css_link_tags]
         @include_fragment_dependencies_instead_of_aggregates = options[:include_fragment_dependencies_instead_of_aggregates]
         @type_to_extension_map = {
           :javascript => 'js', :css => 'css'
-        }.merge(options[:type_to_extension_map])
+        }.merge(options[:type_to_extension_map] || { })
       end
       
       def start_all
@@ -38,10 +38,6 @@ module AssetAggregator
           output_if_verbose "-->"
           output_if_verbose ""
         end
-      end
-      
-      def need_to_import_css_instead?(subpath_references_pairs_this_type)
-        subpath_references_pairs_this_type.length > @max_css_link_tags
       end
       
       def start_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
@@ -71,23 +67,23 @@ module AssetAggregator
         end
       end
       
-      def aggregate_fragments(aggregate_type, subpath, references)
-        if references.detect { |r| r.kind_of?(AssetAggregator::Core::AggregateReference) }
-          output_if_verbose "    <!-- NOTE: Aggregate '#{integration.html_escape(subpath)}' is explicitly required (as an aggregate), "
-          output_if_verbose "         so we have to include it as such, even though you're asking for fragments "
-          output_if_verbose "         separately. -->"
-          aggregate_whole(aggregate_type, subpath, references)
-        else
-          references.each do |reference|
-            fragment = asset_aggregator.fragment_for(aggregate_type, reference.fragment_source_position)
-            raise "This reference points to a fragment that doesn't exist. Please check the location and try again.\n#{reference}" unless fragment
-            output_if_verbose "    <!-- #{reference}: -->"
-            output_if_verbose "    #{fragment_include_tag_for(aggregate_type, reference.fragment_source_position)}"
-            output_if_verbose ""
-          end
+      def end_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
+        if @output_as_imports
+          output "    -->"
+          output "    </style>"
         end
+        output_if_verbose "  <!-- End #{aggregate_type} includes -->"
       end
       
+      def end_all
+        output_if_verbose "<!-- END AssetAggregator Includes -->"
+      end
+      
+      def text
+        @out.string
+      end
+      
+      private
       def current_comment_start
         @output_as_imports ? "/*" : "<!--"
       end
@@ -110,23 +106,27 @@ module AssetAggregator
         output_if_verbose ""
       end
       
-      def end_aggregate_type(aggregate_type, subpath_references_pairs_this_type)
-        if @output_as_imports
-          output "    -->"
-          output "    </style>"
+      def aggregate_fragments(aggregate_type, subpath, references)
+        if references.detect { |r| r.kind_of?(AssetAggregator::Core::AggregateReference) }
+          output_if_verbose "    <!-- NOTE: Aggregate '#{integration.html_escape(subpath)}' is explicitly required (as an aggregate), "
+          output_if_verbose "         so we have to include it as such, even though you're asking for fragments "
+          output_if_verbose "         separately. -->"
+          aggregate_whole(aggregate_type, subpath, references)
+        else
+          references.each do |reference|
+            fragment = asset_aggregator.fragment_for(aggregate_type, reference.fragment_source_position)
+            raise "This reference points to a fragment that doesn't exist. Please check the location and try again.\n#{reference}" unless fragment
+            output_if_verbose "    <!-- #{reference}: -->"
+            output_if_verbose "    #{fragment_include_tag_for(aggregate_type, reference.fragment_source_position)}"
+            output_if_verbose ""
+          end
         end
-        output_if_verbose "  <!-- End #{aggregate_type} includes -->"
       end
       
-      def end_all
-        output_if_verbose "<!-- END AssetAggregator Includes -->"
+      def need_to_import_css_instead?(subpath_references_pairs_this_type)
+        subpath_references_pairs_this_type.length > @max_css_link_tags
       end
       
-      def text
-        @out.string
-      end
-      
-      private
       def output(s)
         @out.puts s
       end
@@ -162,7 +162,13 @@ module AssetAggregator
           else
             integration.stylesheet_link_tag(url)
           end
-        else raise "Don't know how to take a URL and turn it into HTML that references that URL (e.g., the equivalent of <script src=\"...\">) for aggregates of type #{aggregate_type.inspect}; please subclass #{self.class.name}, override #aggregate_include_tag_for_url, and pass it in to PageReferenceSet#include_text"
+        else
+          method = "#{aggregate_type}_aggregate_include_tag".to_sym
+          if integration.respond_to?(method)
+            integration.send(method, url)
+          else
+            raise "Don't know how to take a URL and turn it into HTML that references that URL (e.g., the equivalent of <script src=\"...\">) for aggregates of type #{aggregate_type.inspect}; please either implement ##{method} in your Integration implementation, or else subclass #{self.class.name}, override #include_tag_for_url, and pass it in to PageReferenceSet#include_text."
+          end
         end
       end
       
