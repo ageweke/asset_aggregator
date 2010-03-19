@@ -14,28 +14,49 @@ describe AssetAggregator::Core::PageReferenceSet do
     @set = AssetAggregator::Core::PageReferenceSet.new(@asset_aggregator)
   end
   
-  def add_fragment(type, path, new_path, descrip)
+  def add_fragment(type, path, new_path, descrip, target_subpaths)
     @integration.should_receive(:path_from_base).once.with(path).and_return(new_path)
     source_position = mock(:source_position)
     @set.require_fragment(type, path, source_position, descrip)
+
+    @asset_aggregator.should_receive(:aggregated_subpaths_for).once do |actual_type, actual_source_position|
+      actual_type.should == type
+      actual_source_position.file.should == File.expand_path(new_path)
+      target_subpaths
+    end
+
     source_position
   end
   
   it "should output a single fragment correctly" do
-    source_position_1 = add_fragment(:javascript, "foo/bar", "/foo2/bar2", "baz")
+    source_position_1 = add_fragment(:javascript, "foo/bar", "/foo2/bar2", "baz", [ "bonko" ])
     
     @output_handler_class.should_receive(:new).once.ordered.with(@asset_aggregator, { }).and_return(@output_handler)
-    
-    @asset_aggregator.should_receive(:aggregated_subpaths_for).once do |type, sp|
-      type.should == :javascript
-      sp.file.should == File.expand_path("/foo2/bar2")
-      [ "bonko" ]
-    end
     
     @output_handler.should_receive(:start_all).once.ordered
     assert_reference_list_calls(@output_handler, @javascript_type, [
       'bonko', [
         { :descrip => "baz", :source_position => source_position_1, :file => "/foo2/bar2", :line => nil, :type => :javascript }
+      ]
+    ])
+    @output_handler.should_receive(:end_all).once.ordered
+    @output_handler.should_receive(:text).once.ordered.and_return("abcdef")
+    
+    text = @set.include_text(:output_handler_class => @output_handler_class)
+    text.should == "abcdef"
+  end
+  
+  it "should output two fragments in the same subpath correctly" do
+    source_position_1 = add_fragment(:javascript, "foo/bar", "/foo2/bar2", "descrip1", [ "bonko" ])
+    source_position_2 = add_fragment(:javascript, "bar/baz", "/bar2/baz2", "descrip2", [ "bonko" ])
+    
+    @output_handler_class.should_receive(:new).once.ordered.with(@asset_aggregator, { }).and_return(@output_handler)
+    
+    @output_handler.should_receive(:start_all).once.ordered
+    assert_reference_list_calls(@output_handler, @javascript_type, [
+      'bonko', [
+        { :descrip => "descrip2", :source_position => source_position_2, :file => "/bar2/baz2", :line => nil, :type => :javascript },
+        { :descrip => "descrip1", :source_position => source_position_1, :file => "/foo2/bar2", :line => nil, :type => :javascript }
       ]
     ])
     @output_handler.should_receive(:end_all).once.ordered
@@ -56,20 +77,20 @@ describe AssetAggregator::Core::PageReferenceSet do
   def assert_reference_list_call(object, method_name, expected_type, subpath_and_expected_references_array)
     object.should_receive(method_name).once.ordered do |actual_type, actual_subpath_array|
       begin
-      actual_type.should == expected_type
-      actual_subpath_array.each_with_index do |subpath_and_reference_array, index|
-        (actual_subpath, actual_reference_array) = subpath_and_reference_array
-        expected_subpath = subpath_and_expected_references_array[index * 2]
-        actual_subpath.should == expected_subpath
-        expected_reference_array = subpath_and_expected_references_array[index * 2 + 1]
-        check_references(actual_reference_array, expected_reference_array)
+        actual_type.should == expected_type
+        actual_subpath_array.each_with_index do |subpath_and_reference_array, index|
+          (actual_subpath, actual_reference_array) = subpath_and_reference_array
+          expected_subpath = subpath_and_expected_references_array[index * 2]
+          actual_subpath.should == expected_subpath
+          expected_reference_array = subpath_and_expected_references_array[index * 2 + 1]
+          check_references(actual_reference_array, expected_reference_array)
+        end
+      rescue => e
+        # RSpec swallows the stack trace otherwise, making it incredibly hard to track
+        # down failures...
+        $stderr.puts "Expectation failure detail: #{e}\n#{e.backtrace.join("\n")}"
+        raise
       end
-    rescue => e
-      $stderr.puts "ERROR: #{e}"
-      $stderr.puts e.backtrace.join("\n")
-      $stderr.puts "***"
-      raise
-    end
     end
   end
   
