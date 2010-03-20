@@ -117,14 +117,18 @@ module AssetAggregator
             fragment = asset_aggregator.fragment_for(aggregate_type, reference.fragment_source_position)
             raise "This reference points to a fragment that doesn't exist. Please check the location and try again.\n#{reference}" unless fragment
             output_if_verbose "    <!-- #{reference}: -->"
-            output_if_verbose "    #{fragment_include_tag_for(aggregate_type, reference.fragment_source_position)}"
+            output "    #{fragment_include_tag_for(aggregate_type, reference.fragment_source_position)}"
             output_if_verbose ""
           end
         end
       end
       
       def need_to_import_css_instead?(subpath_references_pairs_this_type)
-        subpath_references_pairs_this_type.length > @max_css_link_tags
+        if @include_fragment_dependencies_instead_of_aggregates
+          (subpath_references_pairs_this_type.map { |(subpath, references)| references.length }.inject(0) { |m,o| m + o }) > @max_css_link_tags
+        else
+          subpath_references_pairs_this_type.length > @max_css_link_tags
+        end
       end
       
       def output(s)
